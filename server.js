@@ -2,7 +2,7 @@ let env = require('./env');
 let express = require('express');
 let bodyParser = require('body-parser');
 let cors = require('cors');
-let IFCBuilder = require('infinitechain_server');
+let IFCBuilder = require('infinitechain_nodejs');
 let path = require('path');
 
 let app = express();

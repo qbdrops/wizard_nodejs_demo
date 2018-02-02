@@ -9,9 +9,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "axios": "^0.17.1",
     "cors": "^2.8.4",
     "express": "^4.16.2",
-    "infinitechain_server": "0.0.4",
+    "infinitechain_nodejs": "0.0.6",
+    "level": "^2.1.2",
     "path": "^0.12.7"
   }
 }
