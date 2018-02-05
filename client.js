@@ -2,10 +2,13 @@ var level = require('level');
 var db = level('./db');
 var IFCBuilder = require('infinitechain_nodejs');
 var axios = require('axios');
+let env = require('./env');
 
-var ifc = new IFCBuilder().setNodeUrl("http://dev.infinitechain.io:3000").
-                           setWeb3Url("http://dev.infinitechain.io:8545").
-                           setDB(db).
+var ifc = new IFCBuilder().setNodeUrl(env.nodeUrl).
+                           setWeb3Url(env.web3Url).
+                           setSignerKey(env.signerKey).
+                           setCipherKey(env.cipherKey).
+                           setStorage('memory').
                            setClientAddress('0x49aabbbe9141fe7a80804bdf01473e250a3414cb').
                            setServerAddress('0x5b9688b5719f608f1cb20fdc59626e717fbeaa9a').
                            build();
@@ -16,32 +19,62 @@ var quotes = [{ company: "Analog Devices, Inc." , value: "91.88"},
               { company: "Altair Engineering Inc." , value: "26.60"}, 
               { company: "Applied Materials, Inc.", value:  "53.63"}];
 
-setInterval(function () {
+let count = 0
+let intervalID = setInterval(async () => {
+    count++;
     var ran = Math.random();
     var min = 1, max = 999;
     var _value = Math.floor(ran * (max - min + 1) + min) % 3;
-    var rawPayment = ifc.client.makeRawPayment(quotes[_value].value, { pkClient: pkClient, pkStakeholder: pkStakeholder });
-    axios.post('http://localhost:3001/send', { rawPayment: rawPayment }).then(function (res) {
-        let payment = res.data.payment
-        ifc.client.savePayment(payment).then(function () {
-            var paymentHash = payment.paymentHash;
-            ifc.client.getPayment(paymentHash).then(console.log);
-        });
-    });
-}, 1000);
+    var rawPayment = ifc.client.makeRawPayment(quotes[_value].value, count, { pkClient: pkClient, pkStakeholder: pkStakeholder });
+    await ifc.client.saveRawPayment(rawPayment);
+    let res = await axios.post('http://localhost:3001/send', { rawPayment: rawPayment });
 
-console.log(ifc.sidechain.getIFCContract());
+    if (res.data.ok) {
+        let payment = res.data.payment;
+        let result = await ifc.client.verifyPayment(payment);
+        if (result) {
+            ifc.client.savePayment(payment);
+        }
+    } else {
+        console.log(res.data.message);
+    }
 
-var watchBlockchainEvent = function () {
+}, 5000);
+
+let watchBlockchainEvent = () => {
     if (ifc.sidechain.getIFCContract()) {
-        ifc.event.watchAddNewStage((err, result) => {
+        ifc.event.watchAddNewStage(async (err, result) => {
             if (err) {
                 console.log(err);
             } else {
-                console.log("Add new stage event")
-                let stageHash = result.args._stageHash;
-                let rootHash = result.args._rootHash;
-                console.log(stageHash, rootHash);
+                try {
+                    console.log("Add new stage event")
+                    clearInterval(intervalID);
+
+                    let stageHash = result.args._stageHash;
+                    let rootHash = result.args._rootHash;
+                    console.log('stageHash: ' + stageHash);
+                    console.log('rootHash: ' + rootHash);
+
+                    // Audit
+                    stageHash = stageHash.substring(2);
+                    let paymentHashes = await ifc.client.getAllPaymentHashes(stageHash);
+                    console.log(paymentHashes);
+                    paymentHashes.forEach(async (hash) => {
+                        let res = await ifc.client.audit(hash);
+                        console.log('Audit result: ' + hash + ', ' + res);
+                    });
+                } catch (e) {
+                    console.log(e);
+                }
+            }
+        });
+
+        ifc.event.watchFinalize((err, result) => {
+            if (err) {
+                console.log(err);
+            } else {
+                console.log("Finalize event")
             }
         });
     } else {

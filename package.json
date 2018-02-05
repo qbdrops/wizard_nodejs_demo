@@ -1,6 +1,6 @@
 {
-  "name": "infinitechain_server_demo",
-  "version": "1.0.0",
+  "name": "infinitechain_nodejs_demo",
+  "version": "0.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -12,7 +12,7 @@
     "axios": "^0.17.1",
     "cors": "^2.8.4",
     "express": "^4.16.2",
-    "infinitechain_nodejs": "0.0.6",
+    "infinitechain_nodejs": "0.0.7",
     "level": "^2.1.2",
     "path": "^0.12.7"
   }

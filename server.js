@@ -12,16 +12,22 @@ app.use(cors());
 
 var server = require('http').createServer(app);
 
-let ifc = new IFCBuilder().setNodeUrl(env.nodeUrl).setWeb3Url(env.web3Url).setSignerKeypair(env.signerKey).setCipherKeypair(env.cipherKey).build();
+let ifc = new IFCBuilder().setNodeUrl(env.nodeUrl).
+                           setWeb3Url(env.web3Url).
+                           setSignerKey(env.signerKey).
+                           setCipherKey(env.cipherKey).
+                           build();
 
 app.post('/send', async function (req, res) {
     try {
-        console.log(req.body);
         let rawPayment = req.body.rawPayment;
         let payment = ifc.server.signRawPayment(rawPayment);
-        ifc.server.sendPayments([payment]).then(console.log);
-
-        res.send({ payment: payment });
+        let result = await ifc.server.sendPayments([payment]);
+        if (result.ok) {
+            res.send({ ok: true, payment: payment });
+        } else {
+            res.send({ ok: false, message: result.message });
+        }
     } catch (e) {
         console.log(e);
         res.status(500).send({ errors: e.message });
@@ -31,9 +37,9 @@ app.post('/send', async function (req, res) {
 app.post('/commit', async function (req, res) {
     try {
         let data = req.body.data;
-        ifc.server.commitPayments(300, 0, data).then(console.log);
+        let txHash = await ifc.server.commitPayments(10, 0, data);
 
-        res.send({ ok: true });
+        res.send({ ok: true, txHash: txHash });
     } catch (e) {
         console.log(e);
         res.status(500).send({ errors: e.message });
@@ -43,9 +49,9 @@ app.post('/commit', async function (req, res) {
 app.post('/finalize', async function (req, res) {
     try {
         let stageHeight = req.body.stageHeight;
-        ifc.server.finalize(stageHeight).then(console.log);
+        let txHash = await ifc.server.finalize(stageHeight);
 
-        res.send({ ok: true });
+        res.send({ ok: true, txHash: txHash });
     } catch (e) {
         console.log(e);
         res.status(500).send({ errors: e.message });
