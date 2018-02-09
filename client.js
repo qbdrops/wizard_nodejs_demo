@@ -38,8 +38,7 @@ let intervalID = setInterval(async () => {
     } else {
         console.log(res.data.message);
     }
-
-}, 5000);
+}, 2000);
 
 let watchBlockchainEvent = () => {
     if (ifc.sidechain.getIFCContract()) {
@@ -49,7 +48,6 @@ let watchBlockchainEvent = () => {
             } else {
                 try {
                     console.log("Add new stage event")
-                    clearInterval(intervalID);
 
                     let stageHash = result.args._stageHash;
                     let rootHash = result.args._rootHash;
@@ -59,7 +57,6 @@ let watchBlockchainEvent = () => {
                     // Audit
                     stageHash = stageHash.substring(2);
                     let paymentHashes = await ifc.client.getAllPaymentHashes(stageHash);
-                    console.log(paymentHashes);
                     paymentHashes.forEach(async (hash) => {
                         let res = await ifc.client.audit(hash);
                         console.log('Audit result: ' + hash + ', ' + res);

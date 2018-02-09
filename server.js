@@ -22,6 +22,7 @@ app.post('/send', async function (req, res) {
     try {
         let rawPayment = req.body.rawPayment;
         let payment = ifc.server.signRawPayment(rawPayment);
+        console.log('Sent payment: ' + payment.paymentHash);
         let result = await ifc.server.sendPayments([payment]);
         if (result.ok) {
             res.send({ ok: true, payment: payment });
@@ -38,7 +39,7 @@ app.post('/commit', async function (req, res) {
     try {
         let data = req.body.data;
         let txHash = await ifc.server.commitPayments(10, 0, data);
-
+        console.log('Committed txHash: ' + txHash);
         res.send({ ok: true, txHash: txHash });
     } catch (e) {
         console.log(e);
