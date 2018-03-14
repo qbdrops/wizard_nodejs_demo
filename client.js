@@ -9,7 +9,7 @@ var ifc = new IFCBuilder().setNodeUrl(env.nodeUrl).
                            setWeb3Url(env.web3Url).
                            setSignerKey(env.signerKey).
                            setCipherKey(env.cipherKey).
-                           setStorage('memory').
+                           setStorage('level', db).
                            setClientAddress('0x49aabbbe9141fe7a80804bdf01473e250a3414cb').
                            setServerAddress('0x5b9688b5719f608f1cb20fdc59626e717fbeaa9a').
                            build();
