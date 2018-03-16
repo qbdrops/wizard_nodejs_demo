@@ -27,11 +27,8 @@ let sendIndex = (quotes) => {
         console.log('Index: ' + index);
         console.log('Weighted Index: ' + weightedIndex);
         quotes = nextQuotes(quotes);
-
-        var rawPayment = ifc.client.makeRawPayment(0, count, { index: index, weightedIndex: weightedIndex, timestamp: (new Date()).toString(), pkClient: pkClient, pkStakeholder: pkStakeholder });
-        await ifc.client.saveRawPayment(rawPayment);
-        let res = await axios.post('http://localhost:3001/send', { rawPayment: rawPayment });
-
+        let data = { index: index, weightedIndex: weightedIndex, timestamp: (new Date()).toString(), pkClient: pkClient, pkStakeholder: pkStakeholder };
+        let res = await sendRawPayment(count, data);
         if (res.data.ok) {
             let payment = res.data.payment;
             let result = await ifc.client.verifyPayment(payment);
@@ -40,10 +37,27 @@ let sendIndex = (quotes) => {
             }
         } else {
             console.log(res.data.message);
+            console.log('start resending');
+            if (res.data.code == 1) {
+                let res = await sendRawPayment(count, data, ifc.sidechain.getLatestStageHeight() + 2);
+                if (res.data.ok) {
+                    console.log('resend success');
+                    let payment = res.data.payment;
+                    let result = await ifc.client.verifyPayment(payment);
+                    if (result) {
+                        ifc.client.savePayment(payment);
+                    }
+                }
+            }
         }
     }, 2000);
 }
-
+let sendRawPayment = async (count, data, stageHeight = null) => {
+    var rawPayment = ifc.client.makeRawPayment(0, count, data, stageHeight);
+    await ifc.client.saveRawPayment(rawPayment);
+    let res = await axios.post('http://localhost:3001/send', { rawPayment: rawPayment });
+    return res;
+}
 // Manipulate the volume and price randomly
 let nextQuotes = quotes => {
     return quotes.map(quote => {

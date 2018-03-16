@@ -27,7 +27,7 @@ app.post('/send', async function (req, res) {
         if (result.ok) {
             res.send({ ok: true, payment: payment });
         } else {
-            res.send({ ok: false, message: result.message });
+            res.send(result);
         }
     } catch (e) {
         console.log(e);
