@@ -4,7 +4,7 @@ let bodyParser = require('body-parser');
 let cors = require('cors');
 let IFCBuilder = require('infinitechain_nodejs');
 let path = require('path');
-
+let runClient = require('./client');
 let app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
@@ -62,6 +62,7 @@ app.post('/finalize', async function (req, res) {
 server.listen(3001, async function () {
     try {
         console.log('App listening on port 3001!');
+        runClient();
     } catch (e) {
         console.error(e.message);
     }

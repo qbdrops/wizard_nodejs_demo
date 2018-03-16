@@ -118,32 +118,36 @@ let watchBlockchainEvent = () => {
         setTimeout(watchBlockchainEvent, 1000);
     }
 }
-watchBlockchainEvent();
 
 // Select company whose CICS level code equals 6
 // Read quotes from file
-fs.readFile('./data/company.csv', (err, content) => {
-    let companies = content.toString().split('\r\n');
-    companies.shift();
-    let ids = companies.filter(company => {
-        let col = company.split(',')[2];
-        return (col == 6)
-    }).map(company => company.split(',')[0].padStart(6, '0'));
+let runClient = () => {
+    watchBlockchainEvent();
+    fs.readFile('./data/company.csv', (err, content) => {
+        let companies = content.toString().split('\r\n');
+        companies.shift();
+        let ids = companies.filter(company => {
+            let col = company.split(',')[2];
+            return (col == 6)
+        }).map(company => company.split(',')[0].padStart(6, '0'));
 
-    fs.readFile('./data/quotes.csv', (err, content) => {
-        let quotes = content.toString().split('\r\n')
-        quotes.shift();
-        quotes = quotes.filter(quote => {
-            let n = quote.split(',')[0].split('.')[0];
-            return ids.includes(n);
-        }).map(quote => {
-            let [id, volume, price] = quote.split(',');
-            return {
-                id: id,
-                volume: parseInt(volume),
-                price: parseFloat(price)
-            }
+        fs.readFile('./data/quotes.csv', (err, content) => {
+            let quotes = content.toString().split('\r\n')
+            quotes.shift();
+            quotes = quotes.filter(quote => {
+                let n = quote.split(',')[0].split('.')[0];
+                return ids.includes(n);
+            }).map(quote => {
+                let [id, volume, price] = quote.split(',');
+                return {
+                    id: id,
+                    volume: parseInt(volume),
+                    price: parseFloat(price)
+                }
+            })
+            sendIndex(quotes);
         })
-        sendIndex(quotes);
-    })
-});
+    });
+}
+
+module.exports = runClient;
