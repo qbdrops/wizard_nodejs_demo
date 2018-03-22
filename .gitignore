@@ -1,6 +1,4 @@
 node_modules
 db
 env.js
-data/company.csv
-data/quotes.csv
 .node-xmlhttprequest-sync-*
