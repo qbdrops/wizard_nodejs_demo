@@ -4,14 +4,15 @@ let bodyParser = require('body-parser');
 let cors = require('cors');
 let IFCBuilder = require('infinitechain_nodejs');
 let path = require('path');
-var level = require('level');
-var db = level('./db');
+let level = require('level');
+let db = level('./db');
 let app = express();
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(cors());
 
-var server = require('http').createServer(app);
+let server = require('http').createServer(app);
 
 let ifc = new IFCBuilder().setNodeUrl(env.nodeUrl).
                            setWeb3Url(env.web3Url).
@@ -21,6 +22,8 @@ let ifc = new IFCBuilder().setNodeUrl(env.nodeUrl).
                            setClientAddress('0x49aabbbe9141fe7a80804bdf01473e250a3414cb').
                            setServerAddress('0x5b9688b5719f608f1cb20fdc59626e717fbeaa9a').
                            build();
+// two phase termination
+let couldGracefulShotdown = true;
 
 app.post('/quotes', async function (req, res) {
     try {
@@ -61,7 +64,7 @@ app.post('/quotes', async function (req, res) {
 
         res.send(result);
     } catch (e) {
-        console.log(e);
+        console.error(e);
         res.status(500).send({ errors: e.message });
     }
 });
@@ -89,7 +92,7 @@ let watchBlockchainEvent = () => {
                         console.log(metadata + ', audit result: ' + res);
                     });
                 } catch (e) {
-                    console.log(e);
+                    console.error(e);
                 }
             }
         });
@@ -115,13 +118,40 @@ server.listen(3001, async function () {
         // Commmit Stage every 3 seconds
         setInterval(async () => {
             try {
+                couldGracefulShotdown = false;
                 let txHash = await ifc.server.commitPayments(86400, 0);
                 console.log('Committed txHash: ' + txHash);
+                couldGracefulShotdown = true;
             } catch (e) {
-                console.log(e);
+                if (e.message === 'Payments are empty.') {
+                    console.error(e);
+                    couldGracefulShotdown = true;
+                }
+                console.error(e);
             }
         }, 3000);
     } catch (e) {
         console.error(e.message);
     }
+});
+
+if (process.platform === "win32") {
+    let rl = require("readline").createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+
+    rl.on("SIGINT", function () {
+        process.emit("SIGINT");
+    });
+}
+
+process.on("SIGINT", function () {
+    if (couldGracefulShotdown) {
+        process.exit();
+    }
+
+    setInterval(() => {
+        process.exit();
+    }, 1000)
 });
