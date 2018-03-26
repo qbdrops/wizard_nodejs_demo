@@ -14,13 +14,14 @@ app.use(cors());
 
 let server = require('http').createServer(app);
 
+let serverAddress = '0x49aabbbe9141fe7a80804bdf01473e250a3414cb';
 let ifc = new IFCBuilder().setNodeUrl(env.nodeUrl).
                            setWeb3Url(env.web3Url).
                            setSignerKey(env.signerKey).
                            setCipherKey(env.cipherKey).
                            setStorage('level', db).
-                           setClientAddress('0x49aabbbe9141fe7a80804bdf01473e250a3414cb').
-                           setServerAddress('0x5b9688b5719f608f1cb20fdc59626e717fbeaa9a').
+                           setClientAddress(serverAddress).
+                           setServerAddress(serverAddress).
                            build();
 // two phase termination
 let couldGracefulShotdown = true;
@@ -76,7 +77,7 @@ let watchBlockchainEvent = () => {
                 console.log(err);
             } else {
                 try {
-                    console.log("Add new stage event")
+                    console.log("Add new stage event");
                     let stageHash = result.args._stageHash;
                     let rootHash = result.args._rootHash;
                     console.log('stageHash: ' + stageHash);
@@ -115,6 +116,22 @@ server.listen(3001, async function () {
         // Watch blockchain event
         watchBlockchainEvent();
 
+        // Commit pending rootHashes
+        setTimeout(async () => {
+            let count = await ifc.sidechain._web3.eth.getTransactionCount(serverAddress);
+            let pendingRootHashes = await ifc.server.pendingRootHashes();
+            pendingRootHashes.forEach(async (pendingRoot) => {
+                try {
+                    let nonce = ifc.sidechain._web3.toHex(count);
+                    let txHash = await ifc.server.commitPayments(86400, 0, '', pendingRoot.rootHash, nonce);
+                    console.log('Committed txHash: ' + txHash);
+                    count++;
+                } catch (e) {
+                    console.error(e);
+                }
+            });
+        }, 3000);
+
         // Commmit Stage every 3 seconds
         setInterval(async () => {
             try {
@@ -124,10 +141,12 @@ server.listen(3001, async function () {
                 couldGracefulShotdown = true;
             } catch (e) {
                 if (e.message === 'Payments are empty.') {
-                    console.error(e);
                     couldGracefulShotdown = true;
+                } else if (e.message === 'Target root hash not found.') {
+                    couldGracefulShotdown = true;
+                } else {
+                    console.error(e);
                 }
-                console.error(e);
             }
         }, 3000);
     } catch (e) {
