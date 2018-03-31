@@ -5,8 +5,9 @@ let sendIndex = (quotes) => {
     let intervalID = setInterval(async () => {
         let index = mean(quotes);
         let weightedIndex = weightedMean(quotes);
-        await axios.post('http://localhost:3001/quotes', { quotes: quotes, index: index, weightedIndex: weightedIndex });
+        let result = await axios.post('http://localhost:3001/quotes', { quotes: quotes, index: index, weightedIndex: weightedIndex });
         quotes = nextQuotes(quotes);
+        console.log(result.data);
     }, 1000);
 }
 

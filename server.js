@@ -3,6 +3,7 @@ let express = require('express');
 let bodyParser = require('body-parser');
 let cors = require('cors');
 let IFCBuilder = require('infinitechain_nodejs');
+let Util = require('ethereumjs-util');
 let path = require('path');
 let level = require('level');
 let db = level('./db');
@@ -14,7 +15,8 @@ app.use(cors());
 
 let server = require('http').createServer(app);
 
-let serverAddress = '0x49aabbbe9141fe7a80804bdf01473e250a3414cb';
+let serverAddress = '0x' + Util.privateToAddress(Buffer.from(env.signerKey, 'hex')).toString('hex');
+console.log(serverAddress);
 let ifc = new IFCBuilder().setNodeUrl(env.nodeUrl).
                            setWeb3Url(env.web3Url).
                            setSignerKey(env.signerKey).
@@ -34,32 +36,31 @@ app.post('/quotes', async function (req, res) {
         let weightedIndex = req.body.weightedIndex;
 
         // Make rawPayment from quotes
-        var keys = ifc.crypto.keyInfo();
+        let keys = ifc.crypto.keyInfo();
         let data = { quotes: quotes, index: index, weightedIndex: weightedIndex, timestamp: (new Date()).toString(), pkClient: keys.rsaPublicKey, pkStakeholder: keys.rsaPublicKey };
-        var rawPayment = ifc.client.makeRawPayment(0, 0, data);
+        let rawPayment = ifc.client.makeRawPayment(0, 0, data);
         await ifc.client.saveRawPayment(rawPayment);
-
         // Send rawPayment to Node
         let payment = ifc.server.signRawPayment(rawPayment);
         console.log('Sent payment: ' + payment.paymentHash);
         let result = await ifc.server.sendPayments([payment]);
 
         if (result.ok) {
-            ifc.client.savePayment(payment);
+            await ifc.client.savePayment(payment);
         } else {
-            console.log(result.message);
-            console.log('start resending');
-            if (result.code == 1) {
-                var rawPayment = ifc.client.makeRawPayment(0, 0, data, ifc.sidechain.getLatestStageHeight() + 2);
-                await ifc.client.saveRawPayment(rawPayment);
-                let payment = ifc.server.signRawPayment(rawPayment);
-                console.log('Sent payment: ' + payment.paymentHash);
-                result = await ifc.server.sendPayments([payment]);
+            console.log('Try resend.');
+            let nextTwoStage = parseInt(ifc.sidechain.getLatestStageHeight()) + 2;
+            let rawPayment = ifc.client.makeRawPayment(0, 0, data, nextTwoStage);
+            await ifc.client.saveRawPayment(rawPayment);
+            let payment = ifc.server.signRawPayment(rawPayment);
+            console.log('Sent payment: ' + payment.paymentHash);
+            result = await ifc.server.sendPayments([payment]);
 
-                if (result.ok) {
-                    console.log('resend success');
-                    ifc.client.savePayment(payment);
-                }
+            if (result.ok) {
+                console.log('Resend success');
+                await ifc.client.savePayment(payment);
+            } else {
+                console.log('Resend fail.')
             }
         }
 
@@ -80,18 +81,19 @@ let watchBlockchainEvent = () => {
                     console.log("Add new stage event");
                     let stageHash = result.args._stageHash;
                     let rootHash = result.args._rootHash;
-                    console.log('stageHash: ' + stageHash);
-                    console.log('rootHash: ' + rootHash);
+                    console.log('StageHash: ' + stageHash);
+                    console.log('RootHash: ' + rootHash);
 
                     // Audit
                     stageHash = stageHash.substring(2);
                     let paymentHashes = await ifc.client.getAllPaymentHashes(stageHash);
-                    paymentHashes.forEach(async (hash) => {
+                    for (let i = 0; i < paymentHashes.length; i++) {
+                        let hash = paymentHashes[i];
                         let res = await ifc.client.audit(hash);
                         let rawPayment = await ifc.client.getRawPayment(hash);
                         let metadata = '{ Time: ' + rawPayment.data.timestamp + ', Index: ' + rawPayment.data.index + ', WeightedIndex: ' + rawPayment.data.weightedIndex + ' }'
                         console.log(metadata + ', audit result: ' + res);
-                    });
+                    }
                 } catch (e) {
                     console.error(e);
                 }
@@ -116,37 +118,16 @@ server.listen(3001, async function () {
         // Watch blockchain event
         watchBlockchainEvent();
 
-        // Commit pending rootHashes
-        setTimeout(async () => {
-            let count = await ifc.sidechain._web3.eth.getTransactionCount(serverAddress);
-            let pendingRootHashes = await ifc.server.pendingRootHashes();
-            pendingRootHashes.forEach(async (pendingRoot) => {
-                try {
-                    let nonce = ifc.sidechain._web3.toHex(count);
-                    let txHash = await ifc.server.commitPayments(86400, 0, '', pendingRoot.rootHash, nonce);
-                    console.log('Committed txHash: ' + txHash);
-                    count++;
-                } catch (e) {
-                    console.error(e);
-                }
-            });
-        }, 3000);
-
         // Commmit Stage every 3 seconds
         setInterval(async () => {
             try {
                 couldGracefulShotdown = false;
                 let txHash = await ifc.server.commitPayments(86400, 0);
                 console.log('Committed txHash: ' + txHash);
-                couldGracefulShotdown = true;
             } catch (e) {
-                if (e.message === 'Payments are empty.') {
-                    couldGracefulShotdown = true;
-                } else if (e.message === 'Target root hash not found.') {
-                    couldGracefulShotdown = true;
-                } else {
-                    console.error(e);
-                }
+                console.log(e.message);
+            } finally {
+                couldGracefulShotdown = true;
             }
         }, 3000);
     } catch (e) {

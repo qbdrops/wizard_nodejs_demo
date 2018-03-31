@@ -11,6 +11,7 @@
   "dependencies": {
     "axios": "^0.17.1",
     "cors": "^2.8.4",
+    "ethereumjs-util": "^5.1.5",
     "express": "^4.16.2",
     "infinitechain_nodejs": "^0.1.5",
     "level": "^2.1.2",
