@@ -1,14 +1,16 @@
 var axios = require('axios');
 let fs = require('fs');
+var sleep = require('sleep');
 
-let sendIndex = (quotes) => {
-    let intervalID = setInterval(async () => {
+let sendIndex = async (quotes) => {
+    while (true) {
         let index = mean(quotes);
         let weightedIndex = weightedMean(quotes);
         let result = await axios.post('http://localhost:3001/quotes', { quotes: quotes, index: index, weightedIndex: weightedIndex });
         quotes = nextQuotes(quotes);
         console.log(result.data);
-    }, 1000);
+        sleep.sleep(1);
+    }
 }
 
 // Manipulate the volume and price randomly
