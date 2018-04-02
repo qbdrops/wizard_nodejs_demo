@@ -37,7 +37,7 @@ app.post('/quotes', async function (req, res) {
 
         // Make rawPayment from quotes
         let keys = ifc.crypto.keyInfo();
-        let data = { quotes: quotes, index: index, weightedIndex: weightedIndex, timestamp: (new Date()).toString(), pkClient: keys.rsaPublicKey, pkStakeholder: keys.rsaPublicKey };
+        let data = { quotes: quotes, index: index, weightedIndex: weightedIndex, timestamp: (Math.floor(Date.now() / 1000)).toString(), pkClient: keys.rsaPublicKey, pkStakeholder: keys.rsaPublicKey };
         let rawPayment = ifc.client.makeRawPayment(0, 0, data);
         await ifc.client.saveRawPayment(rawPayment);
         // Send rawPayment to Node
