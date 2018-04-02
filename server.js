@@ -87,13 +87,12 @@ let watchBlockchainEvent = () => {
                     // Audit
                     stageHash = stageHash.substring(2);
                     let paymentHashes = await ifc.client.getAllPaymentHashes(stageHash);
-                    for (let i = 0; i < paymentHashes.length; i++) {
-                        let hash = paymentHashes[i];
+                    paymentHashes.forEach(async (hash) => {
                         let res = await ifc.client.audit(hash);
                         let rawPayment = await ifc.client.getRawPayment(hash);
                         let metadata = '{ Time: ' + rawPayment.data.timestamp + ', Index: ' + rawPayment.data.index + ', WeightedIndex: ' + rawPayment.data.weightedIndex + ' }'
                         console.log(metadata + ', audit result: ' + res);
-                    }
+                    });
                 } catch (e) {
                     console.error(e);
                 }
