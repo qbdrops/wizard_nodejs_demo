@@ -1,4 +1,4 @@
-var axios = require('axios');
+let axios = require('axios');
 let fs = require('fs');
 
 let sendIndex = async (quotes) => {

@@ -7,6 +7,7 @@ let Util = require('ethereumjs-util');
 let path = require('path');
 let level = require('level');
 let db = level('./db');
+
 let app = express();
 
 app.use(bodyParser.json());
@@ -36,32 +37,28 @@ app.post('/quotes', async function (req, res) {
         let weightedIndex = req.body.weightedIndex;
 
         // Make rawPayment from quotes
-        let keys = ifc.crypto.keyInfo();
-        let data = { quotes: quotes, index: index, weightedIndex: weightedIndex, timestamp: (Math.floor(Date.now() / 1000)).toString(), pkClient: keys.rsaPublicKey, pkStakeholder: keys.rsaPublicKey };
-        let rawPayment = await ifc.client.makeRawPayment(0, 0, data);
-        await ifc.client.saveRawPayment(rawPayment);
-        // Send rawPayment to Node
-        let payment = ifc.server.signRawPayment(rawPayment);
-        console.log('Sent payment: ' + payment.paymentHash);
-        let result = await ifc.server.sendPayments([payment]);
-
-        if (result.ok) {
-            await ifc.client.savePayment(payment);
-        } else {
-            let viableStageHeight = await ifc.sidechain.getViableStageHeight();
-            viableStageHeight = parseInt(viableStageHeight) + 1;
-            console.log('Resend viable stage height: ' + viableStageHeight);
-            let rawPayment = await ifc.client.makeRawPayment(0, 0, data, viableStageHeight);
+        let ok = false;
+        let counter = 0;
+        let retryLimit = 5;
+        let result;
+        while (!ok && counter < retryLimit) {
+            let keys = ifc.crypto.keyInfo();
+            let data = { quotes: quotes, index: index, weightedIndex: weightedIndex, timestamp: (Math.floor(Date.now() / 1000)).toString(), pkClient: keys.rsaPublicKey, pkStakeholder: keys.rsaPublicKey };
+            let rawPayment = await ifc.client.makeRawPayment(0, 0, data);
             await ifc.client.saveRawPayment(rawPayment);
+            // Send rawPayment to Node
             let payment = ifc.server.signRawPayment(rawPayment);
-            console.log('Sent payment: ' + payment.paymentHash);
             result = await ifc.server.sendPayments([payment]);
-
-            if (result.ok) {
-                console.log('Resend success');
+            ok = result.ok;
+    
+            if (ok) {
+                console.log('Sent payment: ' + payment.paymentHash);
                 await ifc.client.savePayment(payment);
+                counter = 0;
+                break;
             } else {
-                console.log('Resend fail.', result);
+                console.log(result);
+                counter++;
             }
         }
 
