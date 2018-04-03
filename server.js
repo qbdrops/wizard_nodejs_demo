@@ -48,7 +48,6 @@ app.post('/quotes', async function (req, res) {
         if (result.ok) {
             await ifc.client.savePayment(payment);
         } else {
-            console.log('Try resend.');
             let nextTwoStage = parseInt(ifc.sidechain.getLatestStageHeight()) + 2;
             let rawPayment = ifc.client.makeRawPayment(0, 0, data, nextTwoStage);
             await ifc.client.saveRawPayment(rawPayment);
@@ -60,7 +59,7 @@ app.post('/quotes', async function (req, res) {
                 console.log('Resend success');
                 await ifc.client.savePayment(payment);
             } else {
-                console.log('Resend fail.')
+                console.log('Resend fail.', result);
             }
         }
 

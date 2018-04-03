@@ -15,7 +15,6 @@
     "express": "^4.16.2",
     "infinitechain_nodejs": "^0.1.5",
     "level": "^2.1.2",
-    "path": "^0.12.7",
-    "sleep": "^5.1.1"
+    "path": "^0.12.7"
   }
 }

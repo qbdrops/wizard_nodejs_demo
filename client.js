@@ -1,6 +1,5 @@
 var axios = require('axios');
 let fs = require('fs');
-var sleep = require('sleep');
 
 let sendIndex = async (quotes) => {
     while (true) {
@@ -9,7 +8,6 @@ let sendIndex = async (quotes) => {
         let result = await axios.post('http://localhost:3001/quotes', { quotes: quotes, index: index, weightedIndex: weightedIndex });
         quotes = nextQuotes(quotes);
         console.log(result.data);
-        sleep.sleep(1);
     }
 }
 
