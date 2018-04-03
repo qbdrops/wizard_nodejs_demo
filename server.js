@@ -38,7 +38,7 @@ app.post('/quotes', async function (req, res) {
         // Make rawPayment from quotes
         let keys = ifc.crypto.keyInfo();
         let data = { quotes: quotes, index: index, weightedIndex: weightedIndex, timestamp: (Math.floor(Date.now() / 1000)).toString(), pkClient: keys.rsaPublicKey, pkStakeholder: keys.rsaPublicKey };
-        let rawPayment = ifc.client.makeRawPayment(0, 0, data);
+        let rawPayment = await ifc.client.makeRawPayment(0, 0, data);
         await ifc.client.saveRawPayment(rawPayment);
         // Send rawPayment to Node
         let payment = ifc.server.signRawPayment(rawPayment);
@@ -48,8 +48,10 @@ app.post('/quotes', async function (req, res) {
         if (result.ok) {
             await ifc.client.savePayment(payment);
         } else {
-            let nextTwoStage = parseInt(ifc.sidechain.getLatestStageHeight()) + 2;
-            let rawPayment = ifc.client.makeRawPayment(0, 0, data, nextTwoStage);
+            let viableStageHeight = await ifc.sidechain.getViableStageHeight();
+            viableStageHeight = parseInt(viableStageHeight) + 1;
+            console.log('Resend viable stage height: ' + viableStageHeight);
+            let rawPayment = await ifc.client.makeRawPayment(0, 0, data, viableStageHeight);
             await ifc.client.saveRawPayment(rawPayment);
             let payment = ifc.server.signRawPayment(rawPayment);
             console.log('Sent payment: ' + payment.paymentHash);
