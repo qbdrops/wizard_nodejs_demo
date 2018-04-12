@@ -43,7 +43,7 @@ app.post('/quotes', async function (req, res) {
         let result;
         while (!ok && counter < retryLimit) {
             let keys = ifc.crypto.keyInfo();
-            let data = { quotes: quotes, index: index, weightedIndex: weightedIndex, timestamp: (Math.floor(Date.now() / 1000)).toString(), pkClient: keys.rsaPublicKey, pkStakeholder: keys.rsaPublicKey };
+            let data = { quotes: quotes, index: index, weightedIndex: weightedIndex, pkClient: keys.rsaPublicKey, pkStakeholder: keys.rsaPublicKey };
             let rawPayment = await ifc.client.makeRawPayment(0, 0, data);
             await ifc.client.saveRawPayment(rawPayment);
             // Send rawPayment to Node
@@ -88,7 +88,7 @@ let watchBlockchainEvent = () => {
                     paymentHashes.forEach(async (hash) => {
                         let res = await ifc.client.audit(hash);
                         let rawPayment = await ifc.client.getRawPayment(hash);
-                        let metadata = '{ Time: ' + rawPayment.data.timestamp + ', Index: ' + rawPayment.data.index + ', WeightedIndex: ' + rawPayment.data.weightedIndex + ' }'
+                        let metadata = '{ Index: ' + rawPayment.data.index + ', WeightedIndex: ' + rawPayment.data.weightedIndex + ' }'
                         console.log(metadata + ', audit result: ' + res);
                     });
                 } catch (e) {
