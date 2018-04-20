@@ -13,8 +13,11 @@
     "cors": "^2.8.4",
     "ethereumjs-util": "^5.1.5",
     "express": "^4.16.2",
-    "infinitechain_nodejs": "^0.1.6",
     "level": "^2.1.2",
     "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "babel-eslint": "^8.2.3",
+    "eslint": "^4.19.1"
   }
 }
