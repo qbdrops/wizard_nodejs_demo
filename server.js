@@ -1,12 +1,9 @@
-let env = require('./env');
 let express = require('express');
 let bodyParser = require('body-parser');
 let cors = require('cors');
 let wizard = require('wizard_nodejs');
-let InfinitechainBuilder = wizard.InfinitechainBuilder;
-let LightTransaction = wizard.LightTransaction;
-
 let Util = require('ethereumjs-util');
+let env = require('./env');
 
 let app = express();
 
@@ -16,19 +13,21 @@ app.use(cors());
 
 let server = require('http').createServer(app);
 
+let InfinitechainBuilder = wizard.InfinitechainBuilder;
+let LightTransaction = wizard.LightTransaction;
+
 let serverAddress = '0x' + Util.privateToAddress(Buffer.from(env.signerKey, 'hex')).toString('hex');
 console.log(serverAddress);
 let infinitechain = new InfinitechainBuilder()
-  .setNodeUrl('http://0.0.0.0:3000')
-  .setWeb3Url('http://0.0.0.0:8545')
-  .setSignerKey('2058a2d1b99d534dc0ec3e71876e4bcb0843fd55637211627087d53985ab04aa')
+  .setNodeUrl(env.nodeUrl)
+  .setWeb3Url(env.web3Url)
+  .setSignerKey(env.signerKey)
   .setStorage('memory')
   .build();
 
 infinitechain.initialize().then(() => {
   infinitechain.event.onProposeDeposit(async (err, r) => {
     console.log('deposit: ');
-    console.log(r);
 
     try {
       let lightTx = LightTransaction.parseProposeDeposit(r.args);
@@ -40,11 +39,6 @@ infinitechain.initialize().then(() => {
     } catch (e) {
       console.error(e);
     }
-  });
-
-  infinitechain.event.onProposeWithdrawal((err, r) => {
-    console.log('withdrawal: ');
-    console.log(r);
   });
 });
 
@@ -72,7 +66,7 @@ app.post('/quotes', async function (req, res) {
       let payment = infinitechain.server.signRawPayment(rawPayment);
       result = await infinitechain.server.sendPayments([payment]);
       ok = result.ok;
-    
+
       if (ok) {
         console.log('Sent payment: ' + payment.paymentHash);
         await infinitechain.client.savePayment(payment);
