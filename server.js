@@ -7,8 +7,6 @@ let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let LightTransaction = wizard.LightTransaction;
 
 let Util = require('ethereumjs-util');
-let level = require('level');
-let db = level('./db');
 
 let app = express();
 
@@ -21,11 +19,34 @@ let server = require('http').createServer(app);
 let serverAddress = '0x' + Util.privateToAddress(Buffer.from(env.signerKey, 'hex')).toString('hex');
 console.log(serverAddress);
 let infinitechain = new InfinitechainBuilder()
-  .setNodeUrl(env.nodeUrl)
-  .setWeb3Url(env.web3Url)
-  .setSignerKey(env.signerKey)
-  .setStorage('level', db)
+  .setNodeUrl('http://0.0.0.0:3000')
+  .setWeb3Url('http://0.0.0.0:8545')
+  .setSignerKey('2058a2d1b99d534dc0ec3e71876e4bcb0843fd55637211627087d53985ab04aa')
+  .setStorage('memory')
   .build();
+
+infinitechain.initialize().then(() => {
+  infinitechain.event.onProposeDeposit(async (err, r) => {
+    console.log('deposit: ');
+    console.log(r);
+
+    try {
+      let lightTx = LightTransaction.parseProposeDeposit(r.args);
+      let signedLightTx = infinitechain.signer.signWithServerKey(lightTx);
+      let receipt = await infinitechain.server.sendLightTx(signedLightTx);
+      let signedReceipt = infinitechain.signer.signWithServerKey(receipt);
+      let txHash = await infinitechain.server.deposit(signedReceipt);
+      console.log(txHash);
+    } catch (e) {
+      console.error(e);
+    }
+  });
+
+  infinitechain.event.onProposeWithdrawal((err, r) => {
+    console.log('withdrawal: ');
+    console.log(r);
+  });
+});
 
 // two phase termination
 let couldGracefulShotdown = true;
@@ -70,23 +91,9 @@ app.post('/quotes', async function (req, res) {
   }
 });
 
-let watchBlockchainEvent = async () => {
-  await infinitechain.initialize();
-  infinitechain.event.onProposeDeposit((err, result) => {
-    if (err) {
-      console.error(err);
-    }
-
-    let lightTx = LightTransaction.parseProposeDeposit(result.args);
-    console.log(lightTx);
-  });
-};
-
 server.listen(3001, async function () {
   try {
     console.log('App listening on port 3001!');
-    // Watch blockchain event
-    watchBlockchainEvent();
   } catch (e) {
     console.error(e.message);
   }

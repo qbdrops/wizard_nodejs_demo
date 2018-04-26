@@ -1,77 +1,53 @@
-let axios = require('axios');
-let fs = require('fs');
+let wizard = require('wizard_nodejs');
 
-let sendIndex = async (quotes) => {
-    while (true) {
-        let index = mean(quotes);
-        let weightedIndex = weightedMean(quotes);
-        let result = await axios.post('http://localhost:3001/quotes', { quotes: quotes, index: index, weightedIndex: weightedIndex });
-        quotes = nextQuotes(quotes);
-        console.log(result.data);
-    }
-}
+let InfinitechainBuilder = wizard.InfinitechainBuilder;
+let Receipt = wizard.Receipt;
+let Types = wizard.Types;
 
-// Manipulate the volume and price randomly
-let nextQuotes = quotes => {
-    return quotes.map(quote => {
-        let sign = (Math.random() > 0.5);
-        let volBias = Math.random() * 5;
-        let qBias = Math.random() * 0.05;
-        let vol = sign ? (quote.volume + volBias) : (quote.volume - volBias);
-        vol = Math.round((vol < 0) ? 0 : vol);
-        let q = sign ? (quote.price + qBias) : (quote.price - qBias);
-        q = Math.round(((q < 0) ? 0 : q) * 100) / 100;
-        let r = {
-            id: quote.id,
-            volume: vol,
-            price: q
-        };
-        return r;
-  })
-}
+let infinitechain = new wizard.InfinitechainBuilder()
+  .setNodeUrl('http://0.0.0.0:3000')
+  .setWeb3Url('http://0.0.0.0:8545')
+  .setSignerKey('2058a2d1b99d534dc0ec3e71876e4bcb0843fd55637211627087d53985ab04aa')
+  .setStorage('memory')
+  .build();
 
-// Compute arithmetic mean
-let mean = (quotes) => {
-    let r =  quotes.reduce((acc, curr) => acc + curr.price, 0) / quotes.length;
-    return Math.round(r * 1000) / 1000;
-}
+infinitechain.initialize().then(async () => {
+  let lightTxData = {
+    from: '0x123',
+    to: '0x456',
+    value: 0.1,
+    LSN: 1,
+    fee: '0.01',
+    stageHeight: 1
+  };
 
-// Compute weighted arithmetic mean
-let weightedMean = (quotes) => {
-    let divisor = quotes.reduce((acc, curr) => acc + (curr.price * curr.volume), 0);
-    let divider = quotes.reduce((acc, curr) => acc + curr.volume, 0);
-    let r = divisor / divider;
-    return Math.round(r * 1000) / 1000;
-}
+  let lightTx = await infinitechain.client.makeLightTx(Types.deposit, lightTxData);
+  await infinitechain.client.saveLightTx(lightTx);
+  let txHash = await infinitechain.client.proposeDeposit(lightTx);
+  console.log(txHash);
 
-// Select company whose CICS level code equals 6
-// Read quotes from file
-let runClient = () => {
-    fs.readFile('./data/company.csv', (err, content) => {
-        let companies = content.toString().split('\r\n');
-        companies.shift();
-        let ids = companies.filter(company => {
-            let col = company.split(',')[2];
-            return (col == 6)
-        }).map(company => company.split(',')[0].padStart(6, '0'));
+  infinitechain.event.onProposeDeposit((err, r) => {
+    console.log('proposeDeposit: ');
+    console.log(r);
+  });
 
-        fs.readFile('./data/quotes.csv', (err, content) => {
-            let quotes = content.toString().split('\r\n')
-            quotes.shift();
-            quotes = quotes.filter(quote => {
-                let n = quote.split(',')[0].split('.')[0];
-                return ids.includes(n);
-            }).map(quote => {
-                let [id, volume, price] = quote.split(',');
-                return {
-                    id: id,
-                    volume: parseInt(volume),
-                    price: parseFloat(price)
-                }
-            })
-            sendIndex(quotes);
-        })
-    });
-}
+  infinitechain.event.onDeposit(async (err, r) => {
+    console.log('deposit: ');
+    let targetLightTxHash = r.args._lightTxHash.substring(2);
+    let lightTx = await infinitechain.client.getLightTx(targetLightTxHash);
+    let receiptJson = {
+      lightTxHash: lightTx.lightTxHash,
+      lightTxData: lightTx.lightTxData,
+      sig: {
+        clientLightTx: lightTx.sig.clientLightTx,
+        serverLightTx: r.args._sig_lightTx,
+        serverReceipt: r.args._sig_receipt,
+      }
+    };
+  });
 
-runClient();
+  infinitechain.event.onProposeWithdrawal((err, r) => {
+    console.log('withdrawal: ');
+    console.log(r);
+  });
+});
