@@ -17,8 +17,6 @@ let infinitechain = new InfinitechainBuilder()
 
 infinitechain.initialize().then(async () => {
   let lightTxData = {
-    from: '0x123',
-    to: '0x456',
     value: 10,
     LSN: 1,
     fee: '0.01'
@@ -70,23 +68,20 @@ infinitechain.initialize().then(async () => {
     let remittanceData = {
       from: '49aabbbe9141fe7a80804bdf01473e250a3414cb',
       to: '50aabbbe9141fe7a80804bdf01473e250a3414cb',
-      value: 0.1,
+      value: 1,
       LSN: 1,
       fee: 0.002
     };
 
     let remittanceLightTx = await infinitechain.client.makeLightTx(Types.remittance, remittanceData);
     let url = 'http://localhost:3001/pay';
-    console.log(remittanceLightTx.toJson());
     let response = await axios.post(url, remittanceLightTx.toJson());
     let remittanceReceiptJson = response.data;
-    console.log(remittanceReceiptJson);
 
     let remittanceReceipt = new Receipt(remittanceReceiptJson);
     await infinitechain.client.saveReceipt(remittanceReceipt);
     let remittanceReceiptFromDB = await infinitechain.client.getReceipt(remittanceReceipt.receiptHash);
     remittanceReceiptFromDB = new Receipt(remittanceReceiptFromDB);
-
     console.log(remittanceReceiptFromDB.toJson());
   });
 });
