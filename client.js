@@ -7,6 +7,7 @@ let db = level('./db');
 let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Receipt = wizard.Receipt;
 let Types = wizard.Types;
+let url = 'http://localhost:3001/pay';
 
 let infinitechain = new InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)
@@ -17,7 +18,7 @@ let infinitechain = new InfinitechainBuilder()
 
 infinitechain.initialize().then(async () => {
   let lightTxData = {
-    value: 10,
+    value: 2,
     LSN: 1,
     fee: '0.01'
   };
@@ -61,12 +62,10 @@ infinitechain.initialize().then(async () => {
 
     let receipt = new Receipt(receiptJson);
     await infinitechain.client.saveReceipt(receipt);
-    let receiptFromDB = await infinitechain.client.getReceipt(receipt.receiptHash);
 
-    console.log(receiptFromDB);
-
+    // Remittance
     let remittanceData = {
-      from: '49aabbbe9141fe7a80804bdf01473e250a3414cb',
+      from: infinitechain.signer.getAddress(),
       to: '50aabbbe9141fe7a80804bdf01473e250a3414cb',
       value: 1,
       LSN: 1,
@@ -74,14 +73,31 @@ infinitechain.initialize().then(async () => {
     };
 
     let remittanceLightTx = await infinitechain.client.makeLightTx(Types.remittance, remittanceData);
-    let url = 'http://localhost:3001/pay';
     let response = await axios.post(url, remittanceLightTx.toJson());
     let remittanceReceiptJson = response.data;
 
     let remittanceReceipt = new Receipt(remittanceReceiptJson);
     await infinitechain.client.saveReceipt(remittanceReceipt);
-    let remittanceReceiptFromDB = await infinitechain.client.getReceipt(remittanceReceipt.receiptHash);
-    remittanceReceiptFromDB = new Receipt(remittanceReceiptFromDB);
-    console.log(remittanceReceiptFromDB.toJson());
+
+    // instantWithdraw
+    let instantWithdrawalData = {
+      from: infinitechain.signer.getAddress(),
+      value: 1,
+      LSN: 2,
+      fee: 0.002
+    };
+    let instantWithdrawalLightTx = await infinitechain.client.makeLightTx(Types.instantWithdrawal, instantWithdrawalData);
+    let instantWithdrawalResponse = await axios.post(url, instantWithdrawalLightTx.toJson());
+    let instantWithdrawalReceiptJson = instantWithdrawalResponse.data;
+    let instantWithdrawalReceipt = new Receipt(instantWithdrawalReceiptJson);
+    await infinitechain.client.saveReceipt(instantWithdrawalReceipt);
+
+    let txHash = await infinitechain.client.instantWithdraw(instantWithdrawalReceipt);
+    console.log(txHash);
+  });
+
+  infinitechain.event.onInstantWithdraw(async (err, result) => {
+    console.log('instantWithdraw:');
+    console.log(result);
   });
 });
