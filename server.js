@@ -45,40 +45,14 @@ infinitechain.initialize().then(() => {
 // two phase termination
 let couldGracefulShotdown = true;
 
-app.post('/quotes', async function (req, res) {
+app.post('/pay', async function (req, res) {
   try {
-    // Get quotes and index from parameters
-    let quotes = req.body.quotes;
-    let index = req.body.index;
-    let weightedIndex = req.body.weightedIndex;
-
-    // Make rawPayment from quotes
-    let ok = false;
-    let counter = 0;
-    let retryLimit = 5;
-    let result;
-    while (!ok && counter < retryLimit) {
-      let keys = infinitechain.crypto.keyInfo();
-      let data = { quotes: quotes, index: index, weightedIndex: weightedIndex, pkClient: keys.rsaPublicKey, pkStakeholder: keys.rsaPublicKey };
-      let rawPayment = await infinitechain.client.makeRawPayment(0, 0, data);
-      await infinitechain.client.saveRawPayment(rawPayment);
-      // Send rawPayment to Node
-      let payment = infinitechain.server.signRawPayment(rawPayment);
-      result = await infinitechain.server.sendPayments([payment]);
-      ok = result.ok;
-
-      if (ok) {
-        console.log('Sent payment: ' + payment.paymentHash);
-        await infinitechain.client.savePayment(payment);
-        counter = 0;
-        break;
-      } else {
-        console.log(result);
-        counter++;
-      }
-    }
-
-    res.send(result);
+    let lightTxJson = req.body;
+    let lightTx = new LightTransaction(lightTxJson);
+    let signedLightTx = infinitechain.signer.signWithServerKey(lightTx);
+    let receipt = await infinitechain.server.sendLightTx(signedLightTx);
+    let signedReceipt = infinitechain.signer.signWithServerKey(receipt);
+    res.send(signedReceipt);
   } catch (e) {
     console.error(e);
     res.status(500).send({ errors: e.message });
