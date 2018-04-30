@@ -15,6 +15,7 @@ let server = require('http').createServer(app);
 
 let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let LightTransaction = wizard.LightTransaction;
+let types = wizard.Types;
 
 let serverAddress = '0x' + Util.privateToAddress(Buffer.from(env.signerKey, 'hex')).toString('hex');
 console.log(serverAddress);
@@ -26,16 +27,31 @@ let infinitechain = new InfinitechainBuilder()
   .build();
 
 infinitechain.initialize().then(() => {
-  infinitechain.event.onProposeDeposit(async (err, r) => {
-    console.log('deposit: ');
-
+  infinitechain.event.onProposeDeposit(async (err, result) => {
     try {
-      let lightTx = LightTransaction.parseProposeDeposit(r.args);
+      let lightTx = LightTransaction.parseProposal(types.deposit, result.args);
       let signedLightTx = infinitechain.signer.signWithServerKey(lightTx);
       let receipt = await infinitechain.server.sendLightTx(signedLightTx);
       let signedReceipt = infinitechain.signer.signWithServerKey(receipt);
       let txHash = await infinitechain.server.deposit(signedReceipt);
-      console.log(txHash);
+      console.log('deposit:');
+      console.log('lightTxHash: ' + signedReceipt.lightTxHash);
+      console.log('txHash: ' + txHash);
+    } catch (e) {
+      console.error(e);
+    }
+  });
+
+  infinitechain.event.onProposeWithdrawal(async (err, result) => {
+    try {
+      let lightTx = LightTransaction.parseProposal(types.withdrawal, result.args);
+      let signedLightTx = infinitechain.signer.signWithServerKey(lightTx);
+      let receipt = await infinitechain.server.sendLightTx(signedLightTx);
+      let signedReceipt = infinitechain.signer.signWithServerKey(receipt);
+      let txHash = await infinitechain.server.confirmWithdrawal(signedReceipt);
+      console.log('confirmWithdrawal:');
+      console.log('lightTxHash: ' + signedReceipt.lightTxHash);
+      console.log('txHash: ' + txHash);
     } catch (e) {
       console.error(e);
     }

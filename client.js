@@ -17,8 +17,9 @@ let infinitechain = new InfinitechainBuilder()
   .build();
 
 infinitechain.initialize().then(async () => {
+  // Deposit
   let lightTxData = {
-    value: 2,
+    value: 20,
     LSN: 1,
     fee: '0.01'
   };
@@ -26,43 +27,11 @@ infinitechain.initialize().then(async () => {
   let lightTx = await infinitechain.client.makeLightTx(Types.deposit, lightTxData);
   await infinitechain.client.saveLightTx(lightTx);
   let txHash = await infinitechain.client.proposeDeposit(lightTx);
-  console.log(txHash);
+  console.log('proposeDeposit:');
+  console.log('lightTxHash: ' + lightTx.lightTxHash);
+  console.log('txHash: ' + txHash);
 
-  infinitechain.event.onDeposit(async (err, result) => {
-    console.log('deposit: ');
-    let targetLightTxHash = result.args._lightTxHash.substring(2);
-    let lightTx = await infinitechain.client.getLightTx(targetLightTxHash);
-    let clientLightTxSig = lightTx.sig.clientLightTx;
-    let serverLightTxSig = {
-      v: result.args._sig_lightTx[0],
-      r: result.args._sig_lightTx[1],
-      s: result.args._sig_lightTx[2],
-    };
-    let serverReceiptSig = {
-      v: result.args._sig_receipt[0],
-      r: result.args._sig_receipt[1],
-      s: result.args._sig_receipt[2],
-    };
-
-    let receiptJson = {
-      lightTxHash: lightTx.lightTxHash,
-      lightTxData: lightTx.lightTxData,
-      sig: {
-        clientLightTx: clientLightTxSig,
-        serverLightTx: serverLightTxSig,
-        serverReceipt: serverReceiptSig,
-      },
-      receiptData: {
-        GSN: result.args._gsn,
-        lightTxHash: result.args._lightTxHash.substring(2),
-        fromBalance: result.args._fromBalance,
-        toBalance: result.args._toBalance
-      }
-    };
-
-    let receipt = new Receipt(receiptJson);
-    await infinitechain.client.saveReceipt(receipt);
-
+  infinitechain.event.onDeposit(async () => {
     // Remittance
     let remittanceData = {
       from: infinitechain.signer.getAddress(),
@@ -79,7 +48,7 @@ infinitechain.initialize().then(async () => {
     let remittanceReceipt = new Receipt(remittanceReceiptJson);
     await infinitechain.client.saveReceipt(remittanceReceipt);
 
-    // instantWithdraw
+    // Instant Withdraw
     let instantWithdrawalData = {
       from: infinitechain.signer.getAddress(),
       value: 1,
@@ -93,11 +62,31 @@ infinitechain.initialize().then(async () => {
     await infinitechain.client.saveReceipt(instantWithdrawalReceipt);
 
     let txHash = await infinitechain.client.instantWithdraw(instantWithdrawalReceipt);
-    console.log(txHash);
+    console.log('instantWithdraw:');
+    console.log('lightTxHash: ' + instantWithdrawalReceipt.lightTxHash);
+    console.log('txHash: ' + txHash);
   });
 
-  infinitechain.event.onInstantWithdraw(async (err, result) => {
-    console.log('instantWithdraw:');
-    console.log(result);
+  infinitechain.event.onInstantWithdraw(async () => {
+    // Withdraw
+    let lightTxData = {
+      value: 18,
+      LSN: 3,
+      fee: '0.01'
+    };
+
+    let lightTx = await infinitechain.client.makeLightTx(Types.withdrawal, lightTxData);
+    await infinitechain.client.saveLightTx(lightTx);
+    let txHash = await infinitechain.client.proposeWithdrawal(lightTx);
+    console.log('proposeWithdrawal:');
+    console.log('lightTxHash: ' + lightTx.lightTxHash);
+    console.log('txHash: ' + txHash);
+  });
+
+  infinitechain.event.onConfirmWithdrawal(async (err, receipt) => {
+    let txHash = await infinitechain.client.withdraw(receipt);
+    console.log('withdraw:');
+    console.log('lightTxHash: ' + receipt.lightTxHash);
+    console.log('txHash: ' + txHash);
   });
 });
