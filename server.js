@@ -6,7 +6,7 @@ let Util = require('ethereumjs-util');
 let env = require('./env');
 
 let app = express();
-
+let counter = 0;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cors());
@@ -66,7 +66,11 @@ app.post('/pay', async function (req, res) {
     let lightTxJson = req.body;
     let lightTx = new LightTransaction(lightTxJson);
     let signedLightTx = infinitechain.signer.signWithServerKey(lightTx);
+    console.log('lsn :',signedLightTx.lightTxData.LSN);
     let receipt = await infinitechain.server.sendLightTx(signedLightTx);
+    counter++;
+    console.log('receipt lsn: ', receipt.lightTxData.LSN);
+    console.log(counter);
     let signedReceipt = infinitechain.signer.signWithServerKey(receipt);
     res.send(signedReceipt);
   } catch (e) {
