@@ -23,7 +23,7 @@ infinitechain.initialize().then(async () => {
   // Deposit
   let lightTxData = {
     value: 2000,
-    LSN: 1,
+    LSN: Math.random()*1e18,
     fee: '0.01'
   };
 

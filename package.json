@@ -16,7 +16,7 @@
     "express": "^4.16.2",
     "level": "^2.1.2",
     "path": "^0.12.7",
-    "wizard_nodejs": "^1.1.6"
+    "wizard_nodejs": "^1.1.7"
   },
   "devDependencies": {
     "babel-eslint": "^8.2.3",

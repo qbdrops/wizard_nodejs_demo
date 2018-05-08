@@ -68,6 +68,7 @@ app.post('/pay', async function (req, res) {
     let signedLightTx = infinitechain.signer.signWithServerKey(lightTx);
     console.log('lsn :',signedLightTx.lightTxData.LSN);
     let receipt = await infinitechain.server.sendLightTx(signedLightTx);
+    console.log(receipt.lightTxHash);
     counter++;
     console.log('receipt lsn: ', receipt.lightTxData.LSN);
     console.log(counter);
