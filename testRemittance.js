@@ -38,17 +38,20 @@ infinitechain.initialize().then(async () => {
     balanceMap.setBalance(infinitechain.signer.getAddress(), new BigNumber(2000 *1e18).toString(16).padStart(64, '0'));
     // Remittance
 
-    for (let i = 0; i < 500; i++) {
-      await remittance();  
+    for (let i = 0; i < 100; i++) {
+      await remittance();
     }
     console.log(balanceMap);
-    lightTxJsonArray.forEach(lightTxJson => {
-      try{
-        axios.post(url, lightTxJson);
+    let size = lightTxJsonArray.length;
+
+    for (let i = 0; i < size; i++) {
+      let lightTxJson = lightTxJsonArray[i];
+      try {
+        await axios.post(url, lightTxJson);
       } catch (e) {
-        console.log(e);
+        console.error(e);
       }
-    });
+    }
   });
 });
 
@@ -58,14 +61,14 @@ let remittance = async () => {
   let remittanceData = {
     from: infinitechain.signer.getAddress(),
     to: address,
-    value: 1,
+    value: 0.0001,
     LSN: localLsn,
     fee: 0.002
   };
   lsn++;
   let lightTx = await infinitechain.client.makeLightTx(Types.remittance, remittanceData);
   lightTxJsonArray.push(lightTx.toJson());
-  try{
+  try {
     let value = new BigNumber('0x' + lightTx.lightTxData.value);
     let fromBalance = balanceMap.getBalance(infinitechain.signer.getAddress());
     let toBalance = balanceMap.getBalance(address);
@@ -74,10 +77,10 @@ let remittance = async () => {
     if (fromBalance.isGreaterThanOrEqualTo(value)) {
       fromBalance = fromBalance.minus(value);
       toBalance = toBalance.plus(value);
-  
+
       fromBalance = fromBalance.toString(16).padStart(64, '0');
       toBalance = toBalance.toString(16).padStart(64, '0');
-  
+
       balanceMap.setBalance(infinitechain.signer.getAddress(), fromBalance);
       balanceMap.setBalance(address, toBalance);
     }

@@ -11,6 +11,9 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cors());
 
+let start, end;
+let startLock = false;
+
 let server = require('http').createServer(app);
 
 let InfinitechainBuilder = wizard.InfinitechainBuilder;
@@ -63,15 +66,23 @@ let couldGracefulShotdown = true;
 
 app.post('/pay', async function (req, res) {
   try {
+    if (!startLock) {
+      startLock = true;
+      start = Date.now();
+    }
     let lightTxJson = req.body;
     let lightTx = new LightTransaction(lightTxJson);
     let signedLightTx = infinitechain.signer.signWithServerKey(lightTx);
-    console.log('lsn :',signedLightTx.lightTxData.LSN);
     let receipt = await infinitechain.server.sendLightTx(signedLightTx);
-    console.log(receipt.lightTxHash);
+
     counter++;
-    console.log('receipt lsn: ', receipt.lightTxData.LSN);
-    console.log(counter);
+
+    if (counter == 100) {
+      end = Date.now();
+      let spent = end - start;
+      console.log('spent: ' + spent);
+    }
+
     let signedReceipt = infinitechain.signer.signWithServerKey(receipt);
     res.send(signedReceipt);
   } catch (e) {
