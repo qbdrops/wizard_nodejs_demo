@@ -8,7 +8,7 @@ let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let BigNumber = require('bignumber.js');
 // let Receipt = wizard.Receipt;
 let Types = wizard.Types;
-let url = 'http://localhost:3001/pay';
+let url = 'http://0.0.0.0:3001/pay';
 let lsn = 1;
 let lightTxJsonArray = [];
 let balanceMap = new BalanceMap();
@@ -20,7 +20,7 @@ let infinitechain = new InfinitechainBuilder()
   .build();
 
 let addresses = [];
-let txNumber = 300;
+let txNumber = 800;
 
 infinitechain.initialize().then(async () => {
   // Deposit

@@ -63,7 +63,7 @@ infinitechain.initialize().then(() => {
 
 // two phase termination
 let couldGracefulShotdown = true;
-let txNumber = 300;
+let txNumber = 800;
 
 app.post('/pay', async function (req, res) {
   try {
