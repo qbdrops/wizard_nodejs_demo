@@ -20,7 +20,7 @@ let infinitechain = new InfinitechainBuilder()
   .build();
 
 let addresses = [];
-let txNumber = 800;
+let txNumber = 1500;
 
 infinitechain.initialize().then(async () => {
   // Deposit
@@ -61,9 +61,12 @@ infinitechain.initialize().then(async () => {
     lightTxJsonArray = [];
 
     for (let i = 0 ; i < txNumber; i++) {
-      let r = Math.floor(Math.random() * txNumber);
-      let from = addresses[r];
-      await remittance(from, 0.001);
+      let fromRandom = Math.floor(Math.random() * txNumber);
+      let from = addresses[fromRandom];
+
+      let toRandom = Math.floor(Math.random() * txNumber);
+      let to = addresses[toRandom];
+      await remittance(from, to, 0.001);
     }
 
     console.log(lightTxJsonArray.length);
@@ -75,11 +78,14 @@ infinitechain.initialize().then(async () => {
   });
 });
 
-let remittance = async (from, value) => {
+let remittance = async (from, to, value) => {
   let localLsn = lsn;
-  let address = randomHash();
   if (!from) {
     from = infinitechain.signer.getAddress();
+  }
+
+  if (!to) {
+    to = randomHash();
   }
 
   if (!value) {
@@ -87,20 +93,20 @@ let remittance = async (from, value) => {
   }
   let remittanceData = {
     from: from,
-    to: address,
+    to: to,
     value: value,
     LSN: localLsn,
     fee: 0.002
   };
 
-  addresses.push(address);
+  addresses.push(to);
   lsn++;
   let lightTx = await infinitechain.client.makeLightTx(Types.remittance, remittanceData);
   lightTxJsonArray.push(lightTx.toJson());
   try {
     let value = new BigNumber('0x' + lightTx.lightTxData.value);
     let fromBalance = balanceMap.getBalance(infinitechain.signer.getAddress());
-    let toBalance = balanceMap.getBalance(address);
+    let toBalance = balanceMap.getBalance(to);
     fromBalance = new BigNumber('0x' + fromBalance);
     toBalance = new BigNumber('0x' + toBalance);
     if (fromBalance.isGreaterThanOrEqualTo(value)) {
@@ -111,7 +117,7 @@ let remittance = async (from, value) => {
       toBalance = toBalance.toString(16).padStart(64, '0');
 
       balanceMap.setBalance(infinitechain.signer.getAddress(), fromBalance);
-      balanceMap.setBalance(address, toBalance);
+      balanceMap.setBalance(to, toBalance);
     }
   } catch(e) {
     console.log(e);
