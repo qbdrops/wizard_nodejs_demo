@@ -11,7 +11,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cors());
 
-let start, end;
+let start, end, parallelStart, parallelEnd;
 let startLock = false;
 
 let server = require('http').createServer(app);
@@ -63,6 +63,7 @@ infinitechain.initialize().then(() => {
 
 // two phase termination
 let couldGracefulShotdown = true;
+let txNumber = 300;
 
 app.post('/pay', async function (req, res) {
   try {
@@ -77,10 +78,20 @@ app.post('/pay', async function (req, res) {
 
     counter++;
 
-    if (counter == 100) {
+    if (counter == txNumber) {
       end = Date.now();
       let spent = end - start;
       console.log('spent: ' + spent);
+    }
+
+    if (counter == (txNumber + 1)) {
+      parallelStart = Date.now();
+    }
+
+    if (counter == (txNumber * 2)) {
+      parallelEnd = Date.now();
+      let parallelSpent = parallelEnd - parallelStart;
+      console.log('parallelSpent: ' + parallelSpent);
     }
 
     let signedReceipt = infinitechain.signer.signWithServerKey(receipt);

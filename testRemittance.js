@@ -19,10 +19,13 @@ let infinitechain = new InfinitechainBuilder()
   .setStorage('level', db)
   .build();
 
+let addresses = [];
+let txNumber = 300;
+
 infinitechain.initialize().then(async () => {
   // Deposit
   let lightTxData = {
-    value: 2000,
+    value: 10000,
     LSN: Math.random()*1e18,
     fee: '0.01'
   };
@@ -38,7 +41,9 @@ infinitechain.initialize().then(async () => {
     balanceMap.setBalance(infinitechain.signer.getAddress(), new BigNumber(2000 *1e18).toString(16).padStart(64, '0'));
     // Remittance
 
-    for (let i = 0; i < 100; i++) {
+    addresses.push(infinitechain.signer.getAddress());
+
+    for (let i = 0; i < txNumber; i++) {
       await remittance();
     }
     console.log(balanceMap);
@@ -52,19 +57,43 @@ infinitechain.initialize().then(async () => {
         console.error(e);
       }
     }
+
+    lightTxJsonArray = [];
+
+    for (let i = 0 ; i < txNumber; i++) {
+      let r = Math.floor(Math.random() * txNumber);
+      let from = addresses[r];
+      await remittance(from, 0.001);
+    }
+
+    console.log(lightTxJsonArray.length);
+
+    for (let i = 0; i < lightTxJsonArray.length; i++) {
+      let lightTxJson = lightTxJsonArray[i];
+      axios.post(url, lightTxJson).catch(console.log);
+    }
   });
 });
 
-let remittance = async () => {
+let remittance = async (from, value) => {
   let localLsn = lsn;
   let address = randomHash();
+  if (!from) {
+    from = infinitechain.signer.getAddress();
+  }
+
+  if (!value) {
+    value = 1;
+  }
   let remittanceData = {
-    from: infinitechain.signer.getAddress(),
+    from: from,
     to: address,
-    value: 0.0001,
+    value: value,
     LSN: localLsn,
     fee: 0.002
   };
+
+  addresses.push(address);
   lsn++;
   let lightTx = await infinitechain.client.makeLightTx(Types.remittance, remittanceData);
   lightTxJsonArray.push(lightTx.toJson());
