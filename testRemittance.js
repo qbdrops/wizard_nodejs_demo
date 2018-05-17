@@ -1,22 +1,18 @@
 let wizard = require('wizard_nodejs');
-let level = require('level');
 let env = require('./env');
 let axios = require('axios');
 let BalanceMap = require('./balance-set');
-let db = level('./db');
 let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let BigNumber = require('bignumber.js');
-// let Receipt = wizard.Receipt;
 let Types = wizard.Types;
 let url = 'http://0.0.0.0:3001/pay';
-let lsn = 1;
 let lightTxJsonArray = [];
 let balanceMap = new BalanceMap();
 let infinitechain = new InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)
   .setWeb3Url(env.web3Url)
   .setSignerKey(env.signerKey)
-  .setStorage('level', db)
+  .setStorage('memory')
   .build();
 
 let addresses = [];
@@ -31,18 +27,17 @@ infinitechain.initialize().then(async () => {
   };
 
   let lightTx = await infinitechain.client.makeLightTx(Types.deposit, lightTxData);
-  await infinitechain.client.saveLightTx(lightTx);
   let txHash = await infinitechain.client.proposeDeposit(lightTx);
   console.log('proposeDeposit:');
   console.log('lightTxHash: ' + lightTx.lightTxHash);
   console.log('txHash: ' + txHash);
 
-  infinitechain.event.onDeposit(async () => {
+  setTimeout(async () => {
     balanceMap.setBalance(infinitechain.signer.getAddress(), new BigNumber(2000 *1e18).toString(16).padStart(64, '0'));
     // Remittance
-
     addresses.push(infinitechain.signer.getAddress());
 
+    lightTxJsonArray = [];
     for (let i = 0; i < txNumber; i++) {
       await remittance();
     }
@@ -75,11 +70,10 @@ infinitechain.initialize().then(async () => {
       let lightTxJson = lightTxJsonArray[i];
       axios.post(url, lightTxJson).catch(console.log);
     }
-  });
+  }, 5000);
 });
 
 let remittance = async (from, to, value) => {
-  let localLsn = lsn;
   if (!from) {
     from = infinitechain.signer.getAddress();
   }
@@ -95,15 +89,14 @@ let remittance = async (from, to, value) => {
     from: from,
     to: to,
     value: value,
-    LSN: localLsn,
+    LSN: Math.random()*1e18,
     fee: 0.002
   };
 
   addresses.push(to);
-  lsn++;
-  let lightTx = await infinitechain.client.makeLightTx(Types.remittance, remittanceData);
-  lightTxJsonArray.push(lightTx.toJson());
   try {
+    let lightTx = await infinitechain.client.makeLightTx(Types.remittance, remittanceData);
+    lightTxJsonArray.push(lightTx.toJson());
     let value = new BigNumber('0x' + lightTx.lightTxData.value);
     let fromBalance = balanceMap.getBalance(infinitechain.signer.getAddress());
     let toBalance = balanceMap.getBalance(to);
