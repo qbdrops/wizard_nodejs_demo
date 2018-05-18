@@ -19,58 +19,43 @@ let addresses = [];
 let txNumber = 1500;
 
 infinitechain.initialize().then(async () => {
-  // Deposit
-  let lightTxData = {
-    value: 10000,
-    LSN: Math.random()*1e18,
-    fee: '0.01'
-  };
+  balanceMap.setBalance(infinitechain.signer.getAddress(), new BigNumber(2000 *1e18).toString(16).padStart(64, '0'));
+  // Remittance
+  addresses.push(infinitechain.signer.getAddress());
 
-  let lightTx = await infinitechain.client.makeLightTx(Types.deposit, lightTxData);
-  let txHash = await infinitechain.client.proposeDeposit(lightTx);
-  console.log('proposeDeposit:');
-  console.log('lightTxHash: ' + lightTx.lightTxHash);
-  console.log('txHash: ' + txHash);
+  lightTxJsonArray = [];
+  for (let i = 0; i < txNumber; i++) {
+    await remittance();
+  }
+  console.log(balanceMap);
+  let size = lightTxJsonArray.length;
 
-  setTimeout(async () => {
-    balanceMap.setBalance(infinitechain.signer.getAddress(), new BigNumber(2000 *1e18).toString(16).padStart(64, '0'));
-    // Remittance
-    addresses.push(infinitechain.signer.getAddress());
-
-    lightTxJsonArray = [];
-    for (let i = 0; i < txNumber; i++) {
-      await remittance();
+  for (let i = 0; i < size; i++) {
+    let lightTxJson = lightTxJsonArray[i];
+    try {
+      await axios.post(url, lightTxJson);
+    } catch (e) {
+      console.error(e);
     }
-    console.log(balanceMap);
-    let size = lightTxJsonArray.length;
+  }
 
-    for (let i = 0; i < size; i++) {
-      let lightTxJson = lightTxJsonArray[i];
-      try {
-        await axios.post(url, lightTxJson);
-      } catch (e) {
-        console.error(e);
-      }
-    }
+  lightTxJsonArray = [];
 
-    lightTxJsonArray = [];
+  for (let i = 0 ; i < txNumber; i++) {
+    let fromRandom = Math.floor(Math.random() * txNumber);
+    let from = addresses[fromRandom];
 
-    for (let i = 0 ; i < txNumber; i++) {
-      let fromRandom = Math.floor(Math.random() * txNumber);
-      let from = addresses[fromRandom];
+    let toRandom = Math.floor(Math.random() * txNumber);
+    let to = addresses[toRandom];
+    await remittance(from, to, 0.001);
+  }
 
-      let toRandom = Math.floor(Math.random() * txNumber);
-      let to = addresses[toRandom];
-      await remittance(from, to, 0.001);
-    }
+  console.log(lightTxJsonArray.length);
 
-    console.log(lightTxJsonArray.length);
-
-    for (let i = 0; i < lightTxJsonArray.length; i++) {
-      let lightTxJson = lightTxJsonArray[i];
-      axios.post(url, lightTxJson).catch(console.log);
-    }
-  }, 5000);
+  for (let i = 0; i < lightTxJsonArray.length; i++) {
+    let lightTxJson = lightTxJsonArray[i];
+    axios.post(url, lightTxJson).catch(console.log);
+  }
 });
 
 let remittance = async (from, to, value) => {
