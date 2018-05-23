@@ -23,8 +23,8 @@ infinitechain.initialize().then(async () => {
   web3.eth.sendTransaction({
     from: web3.eth.coinbase,
     to: env.sidechainAddress,
-    value: web3.toWei(1000, 'ether'),
-    gas: 1500000
+    value: web3.toWei(10000, 'ether'),
+    gas: 150000
   });
   console.log('proposeDeposit');
 

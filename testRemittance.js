@@ -27,13 +27,14 @@ infinitechain.initialize().then(async () => {
   for (let i = 0; i < txNumber; i++) {
     await remittance();
   }
-  console.log(balanceMap);
+
   let size = lightTxJsonArray.length;
 
   for (let i = 0; i < size; i++) {
     let lightTxJson = lightTxJsonArray[i];
     try {
       await axios.post(url, lightTxJson);
+      console.log('lightTxHash: ' + lightTxJson.lightTxHash);
     } catch (e) {
       console.error(e);
     }
@@ -47,7 +48,7 @@ infinitechain.initialize().then(async () => {
 
     let toRandom = Math.floor(Math.random() * txNumber);
     let to = addresses[toRandom];
-    await remittance(from, to, 0.001);
+    await remittance(from, to, 0.0001);
   }
 
   console.log(lightTxJsonArray.length);
@@ -73,8 +74,8 @@ let remittance = async (from, to, value) => {
   let remittanceData = {
     from: from,
     to: to,
+    assetID: 1,
     value: value,
-    LSN: Math.random()*1e18,
     fee: 0.002
   };
 
