@@ -31,7 +31,11 @@ infinitechain.initialize().then(async () => {
   let start = Date.now();
   for (let i = 0; i < lightTxJsonArray.length; i++) {
     let lightTxJson = lightTxJsonArray[i];
-    await axios.post(url, lightTxJson);
+    try {
+      await axios.post(url, lightTxJson);
+    } catch (e) {
+      //
+    }
   }
   let end = Date.now();
   let spent = end - start;
