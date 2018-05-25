@@ -5,7 +5,7 @@ let BalanceMap = require('./balance-set');
 let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let BigNumber = require('bignumber.js');
 let Types = wizard.Types;
-let url = 'http://0.0.0.0:3001/pay';
+let url = 'http://127.0.0.1:3001/pay';
 let lightTxJsonArray = [];
 let balanceMap = new BalanceMap();
 let infinitechain = new InfinitechainBuilder()
@@ -28,35 +28,14 @@ infinitechain.initialize().then(async () => {
     await remittance();
   }
 
-  let size = lightTxJsonArray.length;
-
-  for (let i = 0; i < size; i++) {
-    let lightTxJson = lightTxJsonArray[i];
-    try {
-      await axios.post(url, lightTxJson);
-      console.log('lightTxHash: ' + lightTxJson.lightTxHash);
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  lightTxJsonArray = [];
-
-  for (let i = 0 ; i < txNumber; i++) {
-    let fromRandom = Math.floor(Math.random() * txNumber);
-    let from = addresses[fromRandom];
-
-    let toRandom = Math.floor(Math.random() * txNumber);
-    let to = addresses[toRandom];
-    await remittance(from, to, 0.0001);
-  }
-
-  console.log(lightTxJsonArray.length);
-
+  let start = Date.now();
   for (let i = 0; i < lightTxJsonArray.length; i++) {
     let lightTxJson = lightTxJsonArray[i];
-    axios.post(url, lightTxJson).catch(console.log);
+    await axios.post(url, lightTxJson);
   }
+  let end = Date.now();
+  let spent = end - start;
+  console.log(`Spent ${spent} milliseconds for ${txNumber} transactions`);
 });
 
 let remittance = async (from, to, value) => {

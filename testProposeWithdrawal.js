@@ -7,7 +7,7 @@ let db = level('./db');
 let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Receipt = wizard.Receipt;
 // let Types = wizard.Types;
-let url = 'http://localhost:3001/pay';
+let url = 'http://127.0.0.1:3001/pay';
 
 let infinitechain = new InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)

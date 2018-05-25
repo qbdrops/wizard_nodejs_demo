@@ -6,13 +6,9 @@ let Util = require('ethereumjs-util');
 let env = require('./env');
 
 let app = express();
-let counter = 0;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cors());
-
-let start, end, parallelStart, parallelEnd;
-let startLock = false;
 
 let server = require('http').createServer(app);
 
@@ -32,36 +28,13 @@ infinitechain.initialize();
 
 // two phase termination
 let couldGracefulShotdown = true;
-let txNumber = 1500;
 
 app.post('/pay', async function (req, res) {
   try {
-    if (!startLock) {
-      startLock = true;
-      start = Date.now();
-    }
     let lightTxJson = req.body;
     let lightTx = new LightTransaction(lightTxJson);
     let signedLightTx = infinitechain.signer.signWithServerKey(lightTx);
     let receipt = await infinitechain.server.sendLightTx(signedLightTx);
-
-    counter++;
-
-    if (counter == txNumber) {
-      end = Date.now();
-      let spent = end - start;
-      console.log('spent: ' + spent);
-    }
-
-    if (counter == (txNumber + 1)) {
-      parallelStart = Date.now();
-    }
-
-    if (counter == (txNumber * 2)) {
-      parallelEnd = Date.now();
-      let parallelSpent = parallelEnd - parallelStart;
-      console.log('parallelSpent: ' + parallelSpent);
-    }
 
     let signedReceipt = infinitechain.signer.signWithServerKey(receipt);
     res.send(signedReceipt);
