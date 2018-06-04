@@ -51,8 +51,8 @@ let env = {
 ```
 $ npm start
 ```
-After the server is up, there is 1 API that can be used to interact with the sidechain:
 
+## API List
 #### `POST /pay`
 - Parameter: `lightTx`
 
@@ -69,6 +69,10 @@ There are four types for light transactions:
 $ node client.js
 ```
 This will start to send four types of light transaction to server.
+* deposit
+* withdrawal
+* remittance
+* instantWithdrawal
 
 ### 2. Start `testRemittance.js`
 ```
@@ -80,20 +84,19 @@ This will start to send lots of remittance light transaction to server synchrono
 ```
 $ node testProposeDeposit.js
 ```
-
+This will start to send deposit light transaction to server synchronously.
 
 ### 4. Start `testProposeWithdrawal.js`
 ```
 $ node testProposeWithdrawal.js
 ```
-
+This will start to send withdrawal light transaction to server synchronously.
 
 ### 5. Start `testInstantWithdraw.js`
 ```
 $ node testInstantWithdraw.js
 ```
-
-
+This will start to send instantWithdraw light transaction to server synchronously.
 
 ### 6. Start `testAuditorjs`
 ```
