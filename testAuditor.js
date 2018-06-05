@@ -25,7 +25,6 @@ chains.forEach(chain => {
   chain.initialize();
 });
 let addressPool = chains.map(chain => chain.signer.getAddress());
-
 function random (pool) {
   let i = parseInt(Math.random() * 10000 % 5);
   return pool[i];

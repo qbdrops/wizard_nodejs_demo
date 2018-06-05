@@ -22,7 +22,7 @@ infinitechain.initialize().then(async () => {
   // Simulate proposeDeposit
   web3.eth.sendTransaction({
     from: web3.eth.coinbase,
-    to: env.sidechainAddress,
+    to: infinitechain.contract.sidechain().address,
     value: web3.toWei(10000, 'ether'),
     gas: 150000
   });
