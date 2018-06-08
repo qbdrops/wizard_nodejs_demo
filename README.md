@@ -4,7 +4,7 @@
 
 Users can store their ERC20 tokens or ETH into a booster contract and withdraw them at any time. If ERC20 tokens or ETH stored in a booster contract enters a booster for trading, then it will be temporarily unavailable for withdrawal. It must be withdrawn from the booster to the booster contract before it can be transferred to another account on main chain.
 
-In wizard nodejs demo, you will run a server that is acting as the agent. You can interact with [gringotts](https://github.com/BOLT-Protocol/gringotts). To store and withdraw users' ERC20 tokens or ETH at any time, all you need to do is sending a light transaction to the server.
+In wizard nodejs demo, you will run a server that is acting as the agent. You can interact with [gringotts](https://github.com/BOLT-Protocol/gringotts). To store and withdraw your ERC20 tokens or ETH at any time, all you need to do is sending a light transaction to the server.
 
 ## Prerequisites
 |               Prerequisite                       |                 Description              |
