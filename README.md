@@ -73,6 +73,51 @@ There are four types for light transactions:
   Withdraw ERC20 tokens or ETH from gringotts contract instant, which means you don't need to wait a challenge period.
 
 ## Run test files
+Before run these test files, you have to make sure the signer has enough ether.
+
+* Check signer's balance (Run the command in geth console)
+
+    ```
+    eth.getBalance('Your signer address')
+    ```
+
+* Send ether to signer's address from account that exist in the geth node (Run the command in geth console)
+
+    ```
+    // unlock account
+    personal.unlockAccount('Your account in geth node')
+    
+    eth.sendTransaction({
+      from: 'Your account in geth node',
+      to: 'Your signer address',
+      value: 'Value in wei'
+    })
+    ```
+    
+* Sign a transaction to send ether to signer's address from account that doesn't exist in the geth node (Run the command in node console)
+
+    ```js
+    const Tx = require('ethereumjs-tx')
+    const privateKey = Buffer.from('Your signer key', 'hex')
+    let tx = new Tx({
+      nonce: 'Nonce of your signer address',
+      to: 'Your signer address',
+      value: 'Value in wei',
+      gas: 'gas',
+      gasPrice: 'gasPrice'
+    })
+    
+    // Sign a transaction
+    tx.sign(privateKey)
+    
+    let signedTx = tx.serialize().toString('hex')
+    
+    console.log(signedTx)
+    ```
+    Then run the command in geth console
+    ``` 
+    eth.sendRawTransaction('Signed transaction')
+    ```
 ### 1. Start `client.js`
 ```
 $ node client.js
