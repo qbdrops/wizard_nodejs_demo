@@ -118,17 +118,8 @@ Before run these test files, you have to make sure the signer has enough ether.
     ``` 
     eth.sendRawTransaction('Signed transaction')
     ```
-### 1. Start `client.js`
-```
-$ node client.js
-```
-This will start to send four types of light transaction sequentially to server.
-1. deposit
-2. remittance
-3. instantWithdrawal
-4. withdrawal
 
-### 2. Start `testProposeDeposit.js`
+### 1. Start `testProposeDeposit.js`
 ```
 $ node testProposeDeposit.js
 
@@ -165,7 +156,7 @@ After run this file, you can check your balance on sidechain.
 $ curl -G http://localhost:3003/balance/'your signer address without 0x prefixed'
 ```
 
-### 3. Start testRemittance.js`
+### 2. Start testRemittance.js`
 ```
 $ node testRemittance.js
 
@@ -174,7 +165,7 @@ Spent 35654 milliseconds for 1500 transactions
 This will start to send lots of remittance light transaction to server sequentially.
 > Note: You need to run testProposeDeposit.js first.
 
-### 4. Start `testProposeWithdrawal.js`
+### 3. Start `testProposeWithdrawal.js`
 ```
 $ node testProposeWithdrawal.js
 
@@ -242,7 +233,7 @@ proposeWithdrawal:
 ```
 This will start to send withdrawal light transaction to server synchronously.
 
-### 5. Start `testInstantWithdraw.js`
+### 4. Start `testInstantWithdraw.js`
 ```
 $ node testInstantWithdraw.js
 
@@ -312,7 +303,7 @@ This will start to send instantWithdraw light transaction to server synchronousl
 
 > If you cannot run this file, please check the value of instantWithdrawMaximum in the sidechain.
 
-### 6. Start `testAuditor.js`
+### 5. Start `testAuditor.js`
 ```
 $ node testAuditor.js
 
