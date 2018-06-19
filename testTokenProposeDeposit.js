@@ -9,7 +9,6 @@ let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Receipt = wizard.Receipt;
 // let Types = wizard.Types;
 let url = 'http://127.0.0.1:3001/pay';
-let web3 = new Web3(new Web3.providers.HttpProvider(env.web3Url));
 
 let infinitechain = new InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)
