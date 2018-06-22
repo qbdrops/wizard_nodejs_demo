@@ -8,7 +8,7 @@ let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Receipt = wizard.Receipt;
 // let Types = wizard.Types;
 let url = 'http://localhost:3001/pay';
-let assetAddress = 'dee3a5a5603023db237ecc837d15803a5a62b088';
+let assetAddress = env.assetAddress;
 
 let infinitechain = new InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)
