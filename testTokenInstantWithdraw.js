@@ -25,18 +25,8 @@ infinitechain.initialize().then(async () => {
   });
 
   // instantWithdraw
-  let nonce = infinitechain.client._getNonce();
-  let clientAddress = infinitechain.signer.getAddress();
-  let normalizedClientAddress = clientAddress.slice(-40).padStart(64, '0').slice(-64);
-  let logID = infinitechain.client._sha3(normalizedClientAddress + nonce);
-  let lightTxData = {
-    assetID: '0x' + assetAddress.padStart(64, '0'),
-    value: 0.00000000000001,
-    fee: 0.01,
-    nonce: nonce,
-    logID: logID
-  };
-  let withdrawalLightTx = await infinitechain.client.makeLightTx(2, lightTxData);
+  let withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal('0x' + assetAddress.padStart(64, '0'), 0.00000000000001);
+  
   let response = await axios.post(url, withdrawalLightTx.toJson());
   let withdrawalReceiptJson = response.data;
 

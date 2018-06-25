@@ -3,6 +3,7 @@ let level = require('level');
 let env = require('./env');
 let axios = require('axios');
 let Web3 = require('web3');
+let util = require('ethereumjs-util');
 
 let db = level('./db');
 let InfinitechainBuilder = wizard.InfinitechainBuilder;
@@ -55,20 +56,19 @@ let abi = [
     "type": "function"
   }
 ];
-
+let fromAddress = util.publicToAddress(util.privateToPublic(Buffer.from(env.signerKey, 'hex'))).toString('hex');
 let infinitechain = new InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)
   .setWeb3Url(env.web3Url)
   .setSignerKey(env.signerKey)
   .setStorage('level', db)
   .build();
-
 infinitechain.initialize().then(async () => {
   console.log('token proposeDeposit, you should transfer token to sidechain');
   let sidechainAddress = infinitechain.contract._sidechainAddress;
   let token = web3.eth.contract(abi).at('0x' + assetAddress);
 
-  console.log(await token.transfer(sidechainAddress, 10000000, { from: '0x30b82c8694b59695d78f33a7ba1c2a55dfa618d5', gas: 4000000, gasPrice: 100000000000 }));
+  console.log(await token.transfer(sidechainAddress, 100000000000000000000, { from: '0x' + fromAddress, gas: 4000000, gasPrice: 100000000000 }));
 
   // onDeposit
   infinitechain.event.onDeposit((err, result) => {
@@ -76,29 +76,14 @@ infinitechain.initialize().then(async () => {
     console.log(result);
   });
 
-  infinitechain.event.onProposeDeposit(async (err, result) => {
-    console.log('proposedeposit');
-    console.log(result);
-    if (!err) {
-        let logID = result.args._dsn;
-        let nonce = infinitechain.client._getNonce();
-        let value = result.args._value;
-        let lightTxData = {
-            assetID: '0x' + assetAddress.padStart(64, '0'),
-            value: value,
-            fee: 0.01,
-            nonce: nonce,
-            logID: logID
-        };
+  // proposeDeposit
+  let depositLightTx = await infinitechain.client.makeProposeDeposit('0x' + assetAddress.padStart(64, '0'));
 
-        let depositLightTx = await infinitechain.client.makeLightTx(0, lightTxData);
-        let response = await axios.post(url, depositLightTx.toJson());
-        let depositReceiptJson = response.data;
+  let response = await axios.post(url, depositLightTx.toJson());
+  let depositReceiptJson = response.data;
 
-        let depositReceipt = new Receipt(depositReceiptJson);
-        await infinitechain.client.saveReceipt(depositReceipt);
-    }
-  })
+  let depositReceipt = new Receipt(depositReceiptJson);
+  await infinitechain.client.saveReceipt(depositReceipt);
 })
 .catch((err) => {
   console.log(err);
