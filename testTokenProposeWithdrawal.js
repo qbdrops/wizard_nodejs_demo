@@ -7,7 +7,8 @@ let db = level('./db');
 let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Receipt = wizard.Receipt;
 // let Types = wizard.Types;
-let url = 'http://localhost:3001/pay';
+let url = 'http://127.0.0.1:3001/pay';
+let assetAddress = env.assetAddress;
 
 let infinitechain = new InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)
@@ -17,14 +18,14 @@ let infinitechain = new InfinitechainBuilder()
   .build();
 
 infinitechain.initialize().then(async () => {
-  // onInstantWithdrawa
-  infinitechain.event.onInstantWithdraw((err, result) => {
-    console.log('instantWithdraw:');
+  // onProposeWithdrawal
+  infinitechain.event.onProposeWithdrawal((err, result) => {
+    console.log('proposeWithdrawal:');
     console.log(result);
   });
 
-  // instantWithdraw
-  let withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal(1, 0.00000000000001);
+  // proposeWithdrawal
+  let withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal('0x' + assetAddress.padStart(64, '0'), 20);
 
   let response = await axios.post(url, withdrawalLightTx.toJson());
   let withdrawalReceiptJson = response.data;

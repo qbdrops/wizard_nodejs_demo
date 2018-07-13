@@ -35,7 +35,7 @@ infinitechain.initialize().then(async () => {
   });
 
   // proposeDeposit
-  let depositLightTx = await infinitechain.client.makeProposeDeposit();
+  let depositLightTx = await infinitechain.client.makeProposeDeposit(1);
 
   let response = await axios.post(url, depositLightTx.toJson());
   let depositReceiptJson = response.data;
