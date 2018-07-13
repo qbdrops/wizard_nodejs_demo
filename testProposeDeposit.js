@@ -22,7 +22,7 @@ infinitechain.initialize().then(async () => {
   // Simulate proposeDeposit
   web3.eth.sendTransaction({
     from: web3.eth.coinbase,
-    to: infinitechain.contract.sidechain().address,
+    to: infinitechain.contract.booster().address,
     value: web3.toWei(10000, 'ether'),
     gas: 150000
   });
@@ -35,7 +35,7 @@ infinitechain.initialize().then(async () => {
   });
 
   // proposeDeposit
-  let depositLightTx = await infinitechain.client.makeProposeDeposit(1);
+  let depositLightTx = await infinitechain.client.makeProposeDeposit('0x0'.padEnd(66, '0'));
 
   let response = await axios.post(url, depositLightTx.toJson());
   let depositReceiptJson = response.data;
