@@ -3,7 +3,7 @@ let level = require('level');
 let env = require('./env');
 let axios = require('axios');
 
-let db = level('./db');
+let db = level('./db', { valueEncoding: 'json' });
 let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Receipt = wizard.Receipt;
 // let Types = wizard.Types;

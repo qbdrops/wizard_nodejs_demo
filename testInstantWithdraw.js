@@ -3,13 +3,16 @@ let level = require('level');
 let env = require('./env');
 let axios = require('axios');
 
-let db = level('./db');
-let InfinitechainBuilder = wizard.InfinitechainBuilder;
+let db = level('./db', { valueEncoding: 'json' });
+// let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Receipt = wizard.Receipt;
 // let Types = wizard.Types;
 let url = 'http://localhost:3001/pay';
 
-let infinitechain = new InfinitechainBuilder()
+let credentials;
+let token;
+
+let infinitechain = new wizard.InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)
   .setWeb3Url(env.web3Url)
   .setSignerKey(env.signerKey)

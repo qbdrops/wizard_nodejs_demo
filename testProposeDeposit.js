@@ -18,8 +18,6 @@ let infinitechain = new wizard.InfinitechainBuilder()
   .setWeb3Url(env.web3Url)
   .setSignerKey(env.signerKey)
   .setStorage('level', db)
-  .setReceiptSyncer('googleDrive', credentials)
-  .setSyncerToken(token)
   .build();
 
 infinitechain.initialize().then(async () => {
@@ -40,7 +38,6 @@ infinitechain.initialize().then(async () => {
 
   // proposeDeposit
   let depositLightTx = await infinitechain.client.makeProposeDeposit('0x0'.padEnd(66, '0'));
-
   let response = await axios.post(url, depositLightTx.toJson());
   let depositReceiptJson = response.data;
 

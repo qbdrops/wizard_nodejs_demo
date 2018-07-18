@@ -5,7 +5,7 @@ let axios = require('axios');
 let Web3 = require('web3');
 let util = require('ethereumjs-util');
 
-let db = level('./db');
+let db = level('./db', { valueEncoding: 'json' });
 let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Receipt = wizard.Receipt;
 // let Types = wizard.Types;
@@ -84,7 +84,6 @@ infinitechain.initialize().then(async () => {
 
   let depositReceipt = new Receipt(depositReceiptJson);
   await infinitechain.client.saveReceipt(depositReceipt);
-})
-.catch((err) => {
+}).catch((err) => {
   console.log(err);
 });

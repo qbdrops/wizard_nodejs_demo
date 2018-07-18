@@ -3,13 +3,16 @@ let level = require('level');
 let env = require('./env');
 let axios = require('axios');
 
-let db = level('./db');
-let InfinitechainBuilder = wizard.InfinitechainBuilder;
+let db = level('./db', { valueEncoding: 'json' });
+// let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Receipt = wizard.Receipt;
 // let Types = wizard.Types;
 let url = 'http://127.0.0.1:3001/pay';
 
-let infinitechain = new InfinitechainBuilder()
+let credentials;
+let token;
+
+let infinitechain = new wizard.InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)
   .setWeb3Url(env.web3Url)
   .setSignerKey(env.signerKey)
@@ -25,7 +28,6 @@ infinitechain.initialize().then(async () => {
 
   // proposeWithdrawal
   let withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal('0x0'.padEnd(66, '0'), 20);
-
   let response = await axios.post(url, withdrawalLightTx.toJson());
   let withdrawalReceiptJson = response.data;
 
