@@ -65,10 +65,10 @@ let infinitechain = new InfinitechainBuilder()
   .build();
 infinitechain.initialize().then(async () => {
   console.log('token proposeDeposit, you should transfer token to sidechain');
-  let sidechainAddress = infinitechain.contract._sidechainAddress;
+  let boosterAddress = infinitechain.contract.booster().address;
   let token = web3.eth.contract(abi).at('0x' + assetAddress);
 
-  console.log(await token.transfer(sidechainAddress, 100000000000000000000, { from: '0x' + fromAddress, gas: 4000000, gasPrice: 100000000000 }));
+  console.log(await token.transfer(boosterAddress, 100000000000000000000, { from: '0x' + fromAddress, gas: 4000000, gasPrice: 100000000000 }));
 
   // onDeposit
   infinitechain.event.onDeposit((err, result) => {
@@ -77,7 +77,7 @@ infinitechain.initialize().then(async () => {
   });
 
   // proposeDeposit
-  let depositLightTx = await infinitechain.client.makeProposeDeposit('0x' + assetAddress.padStart(64, '0'));
+  let depositLightTx = await infinitechain.client.makeProposeDeposit();
 
   let response = await axios.post(url, depositLightTx.toJson());
   let depositReceiptJson = response.data;

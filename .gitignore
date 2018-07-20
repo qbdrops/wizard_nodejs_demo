@@ -2,3 +2,5 @@ node_modules
 db
 env.js
 .node-xmlhttprequest-sync-*
+token.json
+credentials.json
