@@ -16,7 +16,7 @@ let infinitechain = new InfinitechainBuilder()
   .build();
 
 let addresses = [];
-let txNumber = 1500;
+let txNumber = 100;
 
 infinitechain.initialize().then(async () => {
   balanceMap.setBalance(infinitechain.signer.getAddress(), new BigNumber(2000 *1e18).toString(16).padStart(64, '0'));
@@ -57,7 +57,7 @@ let remittance = async (from, to, value) => {
   let remittanceData = {
     from: from,
     to: to,
-    assetID: 1,
+    assetID: '0x0'.padEnd(66, '0'),
     value: value,
     fee: 0.002
   };
