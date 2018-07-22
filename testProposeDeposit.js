@@ -6,12 +6,13 @@ let Web3 = require('web3');
 
 let db = level('./db', { valueEncoding: 'json' });
 let Receipt = wizard.Receipt;
-// let Types = wizard.Types;
+
 let url = 'http://127.0.0.1:3001/pay';
 let web3 = new Web3(new Web3.providers.HttpProvider(env.web3Url));
 
 let credentials = require('./credentials.json');
 let token = require('./token.json');
+
 let infinitechain = new wizard.InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)
   .setWeb3Url(env.web3Url)
@@ -38,12 +39,16 @@ infinitechain.initialize().then(async () => {
   });
 
   // proposeDeposit
-  let depositLightTx = await infinitechain.client.makeProposeDeposit('0x0'.padEnd(66, '0'));
-  let response = await axios.post(url, depositLightTx.toJson());
-  let depositReceiptJson = response.data;
+  try {
+    let depositLightTx = await infinitechain.client.makeProposeDeposit('0x0'.padEnd(66, '0'));
+    let response = await axios.post(url, depositLightTx.toJson());
+    let depositReceiptJson = response.data;
 
-  let depositReceipt = new Receipt(depositReceiptJson);
-
-  await infinitechain.client.saveReceipt(depositReceipt);
-  await infinitechain.client.syncReceipts();
+    let depositReceipt = new Receipt(depositReceiptJson);
+  
+    await infinitechain.client.saveReceipt(depositReceipt);
+    await infinitechain.client.syncReceipts();
+  } catch (e) {
+    console.error(e);
+  }
 });
