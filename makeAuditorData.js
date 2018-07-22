@@ -54,7 +54,7 @@ infinitechain.initialize().then(async () => {
   for (let i = 0; i < txNumber; i++) {
     try{
       let [from, to] = await getRandomPair(chains, addressPool);
-      await remittance(from, to, 1);
+      console.log(await remittance(from, to, 1));
     } catch (e) {
       console.log(e);
     }
@@ -73,6 +73,7 @@ let remittance = async (chain, to, value) => {
   try {
     let lightTx = await chain.client.makeLightTx(Types.remittance, remittanceData);
     await axios.post(url, lightTx.toJson());
+    return lightTx.lightTxHash;
   } catch(e) {
     console.log(e);
   }
