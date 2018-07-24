@@ -1,7 +1,8 @@
 let wizard = require('wizard_nodejs');
 let env = require('./env');
 let axios = require('axios');
-
+let Web3 = require('web3');
+let web3 = new Web3(new Web3.providers.HttpProvider(env.web3Url));
 let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Types = wizard.Types;
 let url = 'http://127.0.0.1:3001/pay';
@@ -45,7 +46,7 @@ infinitechain.initialize().then(async () => {
   // Remittance
   for (let i = 0; i < 5; i++) {
     try{
-      await remittance(infinitechain, addressPool[i], 100);
+      await remittance(infinitechain, addressPool[i], 1000);
     } catch (e) {
       console.log(e);
     }
@@ -63,10 +64,12 @@ infinitechain.initialize().then(async () => {
 });
 
 let remittance = async (chain, to, value) => {
+  // let asset = env.assetAddress.padStart(64, '0');
   let remittanceData = {
     from: chain.signer.getAddress(),
     to: to,
-    assetID: '0x0'.padEnd(66, '0'),
+    assetID: '0'.padStart(64, '0'),
+    // assetID: asset,
     value: value,
     fee: 0.002
   };

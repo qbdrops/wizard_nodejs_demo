@@ -68,7 +68,7 @@ infinitechain.initialize().then(async () => {
   let boosterAddress = infinitechain.contract.booster().address;
   let token = web3.eth.contract(abi).at('0x' + assetAddress);
 
-  console.log(await token.transfer(boosterAddress, 100000000000000000000, { from: '0x' + fromAddress, gas: 4000000, gasPrice: 100000000000 }));
+  console.log(await token.transfer(boosterAddress, web3.toWei(10000), { from: '0x' + fromAddress, gas: 4000000, gasPrice: 100000000000 }));
 
   // onDeposit
   infinitechain.event.onDeposit((err, result) => {

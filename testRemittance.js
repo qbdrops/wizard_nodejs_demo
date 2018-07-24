@@ -1,13 +1,11 @@
 let wizard = require('wizard_nodejs');
 let env = require('./env');
 let axios = require('axios');
-let BalanceMap = require('./balance-set');
+let Web3 = require('web3');
+let web3 = new Web3(new Web3.providers.HttpProvider(env.web3Url));
 let InfinitechainBuilder = wizard.InfinitechainBuilder;
-let BigNumber = require('bignumber.js');
 let Types = wizard.Types;
 let url = 'http://127.0.0.1:3001/pay';
-let lightTxJsonArray = [];
-let balanceMap = new BalanceMap();
 let infinitechain = new InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)
   .setWeb3Url(env.web3Url)
@@ -15,82 +13,70 @@ let infinitechain = new InfinitechainBuilder()
   .setStorage('memory')
   .build();
 
-let addresses = [];
 let txNumber = 100;
+let keys = ['41b1a0649752af1b28b3dc29a1556eee781e4a4c3a1f7f53f90fa834de098c41', '41b1a0649752af1b28b3dc29a1556eee781e4a4c3a1f7f53f90fa834de098c42', '41b1a0649752af1b28b3dc29a1556eee781e4a4c3a1f7f53f90fa834de098c43', '41b1a0649752af1b28b3dc29a1556eee781e4a4c3a1f7f53f90fa834de098c44', '41b1a0649752af1b28b3dc29a1556eee781e4a4c3a1f7f53f90fa834de098c45'];
+let chains = keys.map(key => {
+  return new InfinitechainBuilder()
+    .setNodeUrl(env.nodeUrl)
+    .setWeb3Url(env.web3Url)
+    .setSignerKey(key)
+    .setStorage('memory')
+    .build();
+});
+chains.forEach(chain => {
+  chain.initialize();
+});
+let addressPool = chains.map(chain => chain.signer.getAddress());
+function random (pool) {
+  let i = parseInt(Math.random() * 10000 % 5);
+  return pool[i];
+}
+
+let getRandomPair = async (chains, addressPool) => {
+  let from = random(chains);
+  let to = random(addressPool);
+  if (from.signer.getAddress() == to) {
+    return await getRandomPair(chains, addressPool);
+  } else {
+    return [from, to];
+  }
+};
 
 infinitechain.initialize().then(async () => {
-  balanceMap.setBalance(infinitechain.signer.getAddress(), new BigNumber(2000 *1e18).toString(16).padStart(64, '0'));
   // Remittance
-  addresses.push(infinitechain.signer.getAddress());
-
-  lightTxJsonArray = [];
-  for (let i = 0; i < txNumber; i++) {
-    await remittance();
-  }
-
-  let start = Date.now();
-  for (let i = 0; i < lightTxJsonArray.length; i++) {
-    let lightTxJson = lightTxJsonArray[i];
-    try {
-      await axios.post(url, lightTxJson);
+  for (let i = 0; i < 5; i++) {
+    try{
+      await remittance(infinitechain, addressPool[i], 1000);
     } catch (e) {
-      //
+      console.log(e);
     }
   }
-  let end = Date.now();
-  let spent = end - start;
-  console.log(`Spent ${spent} milliseconds for ${txNumber} transactions`);
+
+  for (let i = 0; i < txNumber; i++) {
+    try{
+      let [from, to] = await getRandomPair(chains, addressPool);
+      console.log(await remittance(from, to, 1));
+    } catch (e) {
+      console.log(e);
+    }
+  }
+  console.log('Produce ' + txNumber + ' transactions.');
 });
 
-let remittance = async (from, to, value) => {
-  if (!from) {
-    from = infinitechain.signer.getAddress();
-  }
-
-  if (!to) {
-    to = randomHash();
-  }
-
-  if (!value) {
-    value = 1;
-  }
+let remittance = async (chain, to, value) => {
   let remittanceData = {
-    from: from,
+    from: chain.signer.getAddress(),
     to: to,
-    assetID: '0x0'.padEnd(66, '0'),
+    assetID: '0'.padStart(64, '0'),
     value: value,
     fee: 0.002
   };
-
-  addresses.push(to);
   try {
-    let lightTx = await infinitechain.client.makeLightTx(Types.remittance, remittanceData);
-    lightTxJsonArray.push(lightTx.toJson());
-    let value = new BigNumber('0x' + lightTx.lightTxData.value);
-    let fromBalance = balanceMap.getBalance(infinitechain.signer.getAddress());
-    let toBalance = balanceMap.getBalance(to);
-    fromBalance = new BigNumber('0x' + fromBalance);
-    toBalance = new BigNumber('0x' + toBalance);
-    if (fromBalance.isGreaterThanOrEqualTo(value)) {
-      fromBalance = fromBalance.minus(value);
-      toBalance = toBalance.plus(value);
-
-      fromBalance = fromBalance.toString(16).padStart(64, '0');
-      toBalance = toBalance.toString(16).padStart(64, '0');
-
-      balanceMap.setBalance(infinitechain.signer.getAddress(), fromBalance);
-      balanceMap.setBalance(to, toBalance);
-    }
+    let lightTx = await chain.client.makeLightTx(Types.remittance, remittanceData);
+    await axios.post(url, lightTx.toJson());
+    return lightTx.lightTxHash;
   } catch(e) {
     console.log(e);
   }
 };
-
-let randomHash = () => {
-  let text = '';
-  let possible = 'abcdef0123456789';
-
-  for (let i = 0; i < 40; i++)
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  return text;
-};
+// console.log(addressPool);

@@ -32,23 +32,16 @@ infinitechain.initialize().then(async () => {
   });
   console.log('proposeDeposit');
 
-  // onDeposit
-  infinitechain.event.onDeposit((err, result) => {
-    console.log('Deposit:');
-    console.log(result);
-  });
-
   // proposeDeposit
-  try {
-    let depositLightTx = await infinitechain.client.makeProposeDeposit('0x0'.padEnd(66, '0'));
-    let response = await axios.post(url, depositLightTx.toJson());
-    let depositReceiptJson = response.data;
+  let depositLightTx = await infinitechain.client.makeProposeDeposit();
+  let response = await axios.post(url, depositLightTx.toJson());
+  let depositReceiptJson = response.data;
+  let depositReceipt = new Receipt(depositReceiptJson);
 
-    let depositReceipt = new Receipt(depositReceiptJson);
-  
-    await infinitechain.client.saveReceipt(depositReceipt);
-    await infinitechain.client.syncReceipts();
-  } catch (e) {
-    console.error(e);
-  }
+  await infinitechain.client.saveReceipt(depositReceipt);
+  let getReceipt = await infinitechain.client.getReceipt(depositReceipt.lightTxHash);
+  // get receipt in level
+  console.log(getReceipt);
+  // sync receipt to google drive
+  // await infinitechain.client.syncReceipts();
 });
