@@ -71,8 +71,11 @@ let remittance = async (chain, to, value) => {
     value: value,
     fee: 0.002
   };
+  let metadata = {
+    client:'11111'
+  };
   try {
-    let lightTx = await chain.client.makeLightTx(Types.remittance, remittanceData);
+    let lightTx = await chain.client.makeLightTx(Types.remittance, remittanceData, metadata);
     await axios.post(url, lightTx.toJson());
     return lightTx.lightTxHash;
   } catch(e) {

@@ -46,7 +46,7 @@ infinitechain.initialize().then(async () => {
   // Remittance
   for (let i = 0; i < 5; i++) {
     try{
-      await remittance(infinitechain, addressPool[i], 1000);
+      await remittance(infinitechain, addressPool[i], 100);
     } catch (e) {
       console.log(e);
     }
@@ -64,12 +64,11 @@ infinitechain.initialize().then(async () => {
 });
 
 let remittance = async (chain, to, value) => {
-  // let asset = env.assetAddress.padStart(64, '0');
+  let asset = env.assetAddress.padStart(64, '0');
   let remittanceData = {
     from: chain.signer.getAddress(),
     to: to,
-    assetID: '0'.padStart(64, '0'),
-    // assetID: asset,
+    assetID: asset,
     value: value,
     fee: 0.002
   };

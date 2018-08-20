@@ -10,16 +10,16 @@ let Receipt = wizard.Receipt;
 let url = 'http://127.0.0.1:3001/pay';
 let web3 = new Web3(new Web3.providers.HttpProvider(env.web3Url));
 
-let credentials = require('./credentials.json');
-let token = require('./token.json');
+// let credentials = require('./credentials.json');
+// let token = require('./token.json');
 
 let infinitechain = new wizard.InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)
   .setWeb3Url(env.web3Url)
   .setSignerKey(env.signerKey)
   .setStorage('level', db)
-  .setReceiptSyncer('googleDrive', credentials)
-  .setSyncerToken(token)
+  // .setReceiptSyncer('googleDrive', credentials)
+  // .setSyncerToken(token)
   .build();
 
 infinitechain.initialize().then(async () => {
