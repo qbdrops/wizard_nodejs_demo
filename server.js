@@ -35,7 +35,6 @@ app.post('/pay', async function (req, res) {
     let lightTx = new LightTransaction(lightTxJson);
     let signedLightTx = infinitechain.signer.signWithServerKey(lightTx);
     let receipt = await infinitechain.server.sendLightTx(signedLightTx);
-
     let signedReceipt = infinitechain.signer.signWithServerKey(receipt);
     res.send(signedReceipt);
   } catch (e) {

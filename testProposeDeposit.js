@@ -8,7 +8,7 @@ let db = level('./db', { valueEncoding: 'json' });
 let Receipt = wizard.Receipt;
 
 let url = 'http://127.0.0.1:3001/pay';
-let web3 = new Web3(new Web3.providers.HttpProvider(env.web3Url));
+let web3 = new Web3(env.web3Url);
 
 // let credentials = require('./credentials.json');
 // let token = require('./token.json');
@@ -23,14 +23,17 @@ let infinitechain = new wizard.InfinitechainBuilder()
   .build();
 
 infinitechain.initialize().then(async () => {
+  let from = '0x' + infinitechain.signer.getAddress();
+  let to = infinitechain.contract.booster().options.address
+  let value = web3.utils.toHex(web3.utils.toWei('1', 'ether'));
   // Simulate proposeDeposit
-  web3.eth.sendTransaction({
-    from: web3.eth.coinbase,
-    to: infinitechain.contract.booster().address,
-    value: web3.toWei(10000, 'ether'),
-    gas: 150000
+  let serializedTx = await infinitechain.contract._signRawTransaction(null, from, to, value, null);
+  infinitechain.contract._sendRawTransaction(serializedTx).then(console.log);
+
+  infinitechain.event.onDeposit((err, result) => {
+    console.log('onDeposit:');
+    console.log(result);
   });
-  console.log('proposeDeposit');
 
   // proposeDeposit
   let depositLightTx = await infinitechain.client.makeProposeDeposit();

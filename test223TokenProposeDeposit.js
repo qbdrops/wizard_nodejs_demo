@@ -10,8 +10,7 @@ let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Receipt = wizard.Receipt;
 // let Types = wizard.Types;
 let url = 'http://127.0.0.1:3001/pay';
-let web3 = new Web3(new Web3.providers.HttpProvider(env.web3Url));
-let assetAddress = env.assetAddress;
+let web3 = new Web3(env.web3Url);
 let abi = [
   {
     "constant": false,
@@ -64,11 +63,16 @@ let infinitechain = new InfinitechainBuilder()
   .setStorage('level', db)
   .build();
 infinitechain.initialize().then(async () => {
-  console.log('token proposeDeposit, you should transfer token to sidechain');
-  let boosterAddress = infinitechain.contract.booster().address;
-  let token = web3.eth.contract(abi).at('0x' + assetAddress);
-
-  console.log(await token.transfer(boosterAddress, web3.toWei(10000), { from: '0x' + fromAddress, gas: 4000000, gasPrice: 100000000000 }));
+  let from = '0x' + infinitechain.signer.getAddress();
+  let assetList = await infinitechain.gringotts.getAssetList();
+  let assetName = assetList[1].asset_name;
+  let assetAddress = assetList[1].asset_address;
+  console.log(assetName + ' token proposeDeposit, you should transfer token to sidechain');
+  let boosterAddress = infinitechain.contract.booster().options.address;
+  let token = new web3.eth.Contract(abi, assetAddress);
+  let tXMethodData = await token.methods.transfer(boosterAddress, web3.utils.toWei('10000')).encodeABI();
+  let serializedTx = await infinitechain.contract._signRawTransaction(tXMethodData, from, assetAddress, '0x00', null);
+  infinitechain.contract._sendRawTransaction(serializedTx).then(console.log);
 
   // onDeposit
   infinitechain.event.onDeposit((err, result) => {

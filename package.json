@@ -18,11 +18,12 @@
     "level": "^2.1.2",
     "path": "^0.12.7",
     "uninstall": "0.0.0",
-    "web3": "^0.20.6",
-    "wizard_nodejs": "^1.1.24"
+    "web3": "^1.0.0-beta.33",
+    "wizard_nodejs": "^1.2.0"
   },
   "devDependencies": {
     "babel-eslint": "^8.2.3",
-    "eslint": "^4.19.1"
+    "eslint": "^4.19.1",
+    "websocket": "^1.0.26"
   }
 }
