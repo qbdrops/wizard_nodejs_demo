@@ -13,11 +13,11 @@ let infinitechain = new InfinitechainBuilder()
 
 infinitechain.initialize().then(async () => {
   console.log('Wait attach......');
-  infinitechain.event.onAttach((err, result) => {
+  infinitechain.event.onAttach(async (err, result) => {
     console.log('Attach:');
     console.log(result);
     console.log('Start audit.');
-    let stageHeight = infinitechain.contract.booster().stageHeight().toNumber();
+    let stageHeight = await infinitechain.contract.booster().methods.stageHeight().call();
     infinitechain.auditor.audit(stageHeight).then(a => console.log(a));
   });
 });

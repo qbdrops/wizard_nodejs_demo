@@ -35,13 +35,13 @@ $ cd wizard_nodejs_demo && npm install
 Here are 3 informations you need to provide.
 
 1. `nodeUrl`: Gringotts full node url, usually http://localhost:3000.
-2. `web3Url`: Ethereum full node url, usually http://localhost:8545.
+2. `web3Url`: Ethereum full node url, usually ws://localhost:8546.
 3. `signerKey`: Your address private key in your Ethereum full node.
 ```
 let env = {
     nodeUrl: 'YOUR_NODE_DOMAIN',
     web3Url: 'YOUR_WEB3_DOMAIN',
-    signerKey: 'YOUR_ECC_PRIVATE_KEY',
+    signerKey: 'YOUR_ECC_PRIVATE_KEY'
 };
 ```
 

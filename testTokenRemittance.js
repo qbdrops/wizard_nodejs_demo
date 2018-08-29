@@ -2,7 +2,7 @@ let wizard = require('wizard_nodejs');
 let env = require('./env');
 let axios = require('axios');
 let Web3 = require('web3');
-let web3 = new Web3(new Web3.providers.HttpProvider(env.web3Url));
+let web3 = new Web3(env.web3Url);
 let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Types = wizard.Types;
 let url = 'http://127.0.0.1:3001/pay';
@@ -64,7 +64,10 @@ infinitechain.initialize().then(async () => {
 });
 
 let remittance = async (chain, to, value) => {
-  let asset = env.assetAddress.padStart(64, '0');
+  let assetList = await infinitechain.gringotts.getAssetList();
+  let assetName = assetList[1].asset_name;
+  let assetAddress = assetList[1].asset_address;
+  let asset = assetAddress;
   let remittanceData = {
     from: chain.signer.getAddress(),
     to: to,

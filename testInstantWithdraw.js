@@ -28,7 +28,7 @@ infinitechain.initialize().then(async () => {
 
   // instantWithdraw
   let withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal(
-    { assetID: '0x0'.padEnd(66, '0'),
+    { assetID: '0',
       value: 0.00000000000001
     });
 

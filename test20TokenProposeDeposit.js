@@ -10,8 +10,7 @@ let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Receipt = wizard.Receipt;
 // let Types = wizard.Types;
 let url = 'http://127.0.0.1:3001/pay';
-let web3 = new Web3(new Web3.providers.HttpProvider(env.web3Url));
-let assetAddress = env.assetAddress;
+let web3 = new Web3(env.web3Url);
 let abi = [
   {
     "constant": false,
@@ -110,9 +109,12 @@ let infinitechain = new InfinitechainBuilder()
   .setStorage('level', db)
   .build();
 infinitechain.initialize().then(async () => {
-  console.log('token proposeDeposit, you should transfer token to booster.');
-  let boosterAddress = infinitechain.contract.booster().address;
-  let token = web3.eth.contract(abi).at('0x' + assetAddress);
+  let assetList = await infinitechain.gringotts.getAssetList();
+  let assetName = assetList[1].asset_name;
+  let assetAddress = assetList[1].asset_address;
+  console.log(assetName + ' token proposeDeposit, you should transfer token to booster.');
+  let boosterAddress = infinitechain.contract.booster().options.address;
+  let token = new web3.eth.Contract(abi, assetAddress);
 
   onApproval(async (err, result) => {
     console.log('Approval:');
@@ -120,11 +122,11 @@ infinitechain.initialize().then(async () => {
     // proposeDeposit
     let proposeData = {
       depositAddress: fromAddress,
-      depositValue: web3.toWei(10000),
-      depositAssetAddress: assetAddress
+      depositValue: web3.utils.toWei('10000'),
+      depositAssetAddress: assetAddress.substring(2)
     };
     // call booster contract to call transferFrom to get token. If success, write depositLog.
-    console.log(infinitechain.client.proposeTokenDeposit(proposeData));
+    infinitechain.client.proposeTokenDeposit(proposeData).then(console.log)
     let depositLightTx = await infinitechain.client.makeProposeDeposit();
   
     let response = await axios.post(url, depositLightTx.toJson());
@@ -134,7 +136,10 @@ infinitechain.initialize().then(async () => {
     await infinitechain.client.saveReceipt(depositReceipt);
   });
   // approve booster to get token
-  console.log(await token.approve(boosterAddress, web3.toWei(10000), { from: '0x' + fromAddress, gas: 4000000, gasPrice: 100000000000 }));
+  let from = '0x' + infinitechain.signer.getAddress();
+  let tXMethodData = await token.methods.approve(boosterAddress, web3.utils.toWei('10000')).encodeABI();
+  let serializedTx = await infinitechain.contract._signRawTransaction(tXMethodData, from, assetAddress, '0x00', null);
+  infinitechain.contract._sendRawTransaction(serializedTx);
 
   // onDeposit
   infinitechain.event.onDeposit((err, result) => {
@@ -145,9 +150,13 @@ infinitechain.initialize().then(async () => {
   console.log(err);
 });
 
-let onApproval = (cb) => {
-  let token = web3.eth.contract(abi).at('0x' + assetAddress);
-  token.Approval({ toBlock: 'latest' }).watch((err, result) => {
+let onApproval = async (cb) => {
+  let assetList = await infinitechain.gringotts.getAssetList();
+  let assetAddress = assetList[1].asset_address;
+  let token = new web3.eth.Contract(abi, assetAddress);
+  token.events.Approval({
+    toBlock: 'latest'
+  }, (err, result) => {
     if (err) { console.trace; }
     cb(err, result);
   });

@@ -8,7 +8,6 @@ let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Receipt = wizard.Receipt;
 // let Types = wizard.Types;
 let url = 'http://127.0.0.1:3001/pay';
-let assetAddress = env.assetAddress;
 
 let infinitechain = new InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)
@@ -18,6 +17,9 @@ let infinitechain = new InfinitechainBuilder()
   .build();
 
 infinitechain.initialize().then(async () => {
+  let assetList = await infinitechain.gringotts.getAssetList();
+  let assetName = assetList[1].asset_name;
+  let assetAddress = assetList[1].asset_address;
   // onProposeWithdrawal
   infinitechain.event.onProposeWithdrawal((err, result) => {
     console.log('proposeWithdrawal:');
@@ -27,7 +29,7 @@ infinitechain.initialize().then(async () => {
   // proposeWithdrawal
   let withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal(
     { 
-      assetID: '0x' + assetAddress.padStart(64, '0'),
+      assetID: assetAddress,
       value: 20
     }
   );
