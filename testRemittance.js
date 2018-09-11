@@ -73,7 +73,8 @@ let remittance = async (chain, to, value) => {
     fee: 0.002
   };
   let metadata = {
-    client:'11111'
+    client: '11111',
+    server: '22222'
   };
   try {
     let lightTx = await chain.client.makeLightTx(Types.remittance, remittanceData, metadata);

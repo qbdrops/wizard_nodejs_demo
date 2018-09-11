@@ -24,7 +24,7 @@ let infinitechain = new wizard.InfinitechainBuilder()
 
 infinitechain.initialize().then(async () => {
   let from = '0x' + infinitechain.signer.getAddress();
-  let to = infinitechain.contract.booster().options.address
+  let to = infinitechain.contract.booster().options.address;
   let value = web3.utils.toHex(web3.utils.toWei('10000', 'ether'));
   // Simulate proposeDeposit
   let serializedTx = await infinitechain.contract._signRawTransaction(null, from, to, value, null);
@@ -42,9 +42,23 @@ infinitechain.initialize().then(async () => {
   let depositReceipt = new Receipt(depositReceiptJson);
 
   await infinitechain.client.saveReceipt(depositReceipt);
-  let getReceipt = await infinitechain.client.getReceipt(depositReceipt.lightTxHash);
   // get receipt in level
-  console.log(getReceipt);
+  // let getReceipt = await infinitechain.client.getReceipt(depositReceipt.lightTxHash);
+  // console.log(getReceipt);
   // sync receipt to google drive
   // await infinitechain.client.syncReceipts();
+
+
+  // Demo for audit slice
+  infinitechain.event.onAttach(async (err, result) => {
+    console.log('Attach:');
+    console.log(result);
+    console.log('Start audit my receipt.');
+    let stageHeight = await infinitechain.contract.booster().methods.stageHeight().call();
+    let receiptHashArray = await infinitechain.client.getAllReceiptHashes(stageHeight);
+    let res = await infinitechain.client.getProof(stageHeight, receiptHashArray[0]);
+    let proof = res.data.proof;
+    let auditRes = await infinitechain.client.auidtReceiptProof(stageHeight, receiptHashArray[0], proof);
+    console.log(auditRes);
+  });
 });
