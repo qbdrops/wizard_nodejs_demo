@@ -25,7 +25,7 @@ let infinitechain = new wizard.InfinitechainBuilder()
 infinitechain.initialize().then(async () => {
   let from = '0x' + infinitechain.signer.getAddress();
   let to = infinitechain.contract.booster().options.address
-  let value = web3.utils.toHex(web3.utils.toWei('1', 'ether'));
+  let value = web3.utils.toHex(web3.utils.toWei('10000', 'ether'));
   // Simulate proposeDeposit
   let serializedTx = await infinitechain.contract._signRawTransaction(null, from, to, value, null);
   infinitechain.contract._sendRawTransaction(serializedTx).then(console.log);

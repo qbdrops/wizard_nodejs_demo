@@ -150,7 +150,7 @@ Deposit:
 ```
 This will start to send deposit light transaction to server synchronously.
 
-After run this file, you can check your balance on sidechain.
+After run this file, you can check your balance on booster.
 
 ```
 $ curl -G http://localhost:3003/balance/'your signer address without 0x prefixed'
@@ -301,7 +301,7 @@ instantWithdraw:
 ```
 This will start to send instantWithdraw light transaction to server synchronously.
 
-> If you cannot run this file, please check the value of instantWithdrawMaximum in the sidechain.
+> If you cannot run this file, please check the value of instantWithdrawMaximum in the booster.
 
 ### 5. Start `testAuditor.js`
 ```

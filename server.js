@@ -33,9 +33,11 @@ app.post('/pay', async function (req, res) {
   try {
     let lightTxJson = req.body;
     let lightTx = new LightTransaction(lightTxJson);
+    console.time(lightTx.lightTxHash);
     let signedLightTx = infinitechain.signer.signWithServerKey(lightTx);
     let receipt = await infinitechain.server.sendLightTx(signedLightTx);
     let signedReceipt = infinitechain.signer.signWithServerKey(receipt);
+    console.timeEnd(lightTx.lightTxHash);
     res.send(signedReceipt);
   } catch (e) {
     console.error(e);
