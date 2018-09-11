@@ -4,9 +4,7 @@ let env = require('./env');
 let axios = require('axios');
 
 let db = level('./db', { valueEncoding: 'json' });
-// let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Receipt = wizard.Receipt;
-// let Types = wizard.Types;
 let url = 'http://localhost:3001/pay';
 
 let credentials;
@@ -27,10 +25,10 @@ infinitechain.initialize().then(async () => {
   });
 
   // instantWithdraw
-  let withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal(
-    { assetID: '0',
-      value: 0.00000000000001
-    });
+  let withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal({
+    assetID: '0',
+    value: 0.0000000001
+  });
 
   let response = await axios.post(url, withdrawalLightTx.toJson());
   let withdrawalReceiptJson = response.data;

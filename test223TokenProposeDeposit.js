@@ -8,7 +8,6 @@ let util = require('ethereumjs-util');
 let db = level('./db', { valueEncoding: 'json' });
 let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Receipt = wizard.Receipt;
-// let Types = wizard.Types;
 let url = 'http://127.0.0.1:3001/pay';
 let web3 = new Web3(env.web3Url);
 let abi = [
@@ -67,7 +66,7 @@ infinitechain.initialize().then(async () => {
   let assetList = await infinitechain.gringotts.getAssetList();
   let assetName = assetList[1].asset_name;
   let assetAddress = assetList[1].asset_address;
-  console.log(assetName + ' token proposeDeposit, you should transfer token to sidechain');
+  console.log(assetName + ' token proposeDeposit, you should transfer token to boostar');
   let boosterAddress = infinitechain.contract.booster().options.address;
   let token = new web3.eth.Contract(abi, assetAddress);
   let tXMethodData = await token.methods.transfer(boosterAddress, web3.utils.toWei('10000')).encodeABI();

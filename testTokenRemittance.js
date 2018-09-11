@@ -43,6 +43,7 @@ let getRandomPair = async (chains, addressPool) => {
 };
 
 infinitechain.initialize().then(async () => {
+  console.time('Produce ' + txNumber + ' transactions');
   // Remittance
   for (let i = 0; i < 5; i++) {
     try{
@@ -60,7 +61,7 @@ infinitechain.initialize().then(async () => {
       console.log(e);
     }
   }
-  console.log('Produce ' + txNumber + ' transactions.');
+  console.timeEnd('Produce ' + txNumber + ' transactions');
 });
 
 let remittance = async (chain, to, value) => {
@@ -83,4 +84,3 @@ let remittance = async (chain, to, value) => {
     console.log(e);
   }
 };
-// console.log(addressPool);
