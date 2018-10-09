@@ -20,4 +20,5 @@ infinitechain.initialize().then(async () => {
     let stageHeight = await infinitechain.contract.booster().methods.stageHeight().call();
     infinitechain.auditor.audit(stageHeight).then(a => console.log(a));
   });
+  infinitechain.server.attach();
 });

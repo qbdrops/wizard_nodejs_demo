@@ -44,9 +44,8 @@ app.post('/pay', async function (req, res) {
     }
     let signedLightTx = infinitechain.signer.signWithServerKey(lightTx);
     let receipt = await infinitechain.server.sendLightTx(signedLightTx);
-    let signedReceipt = infinitechain.signer.signWithServerKey(receipt);
     console.timeEnd(lightTx.lightTxHash);
-    res.send(signedReceipt);
+    res.send(receipt);
   } catch (e) {
     console.error(e);
     res.status(500).send({ errors: e.message });
