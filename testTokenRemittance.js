@@ -47,7 +47,7 @@ infinitechain.initialize().then(async () => {
   // Remittance
   for (let i = 0; i < 5; i++) {
     try{
-      await remittance(infinitechain, addressPool[i], 100);
+      await remittance(infinitechain, addressPool[i], txNumber * 2);
     } catch (e) {
       console.log(e);
     }
@@ -74,11 +74,12 @@ let remittance = async (chain, to, value) => {
     to: to,
     assetID: asset,
     value: value,
-    fee: 0.002
+    fee: 1
   };
   try {
     let lightTx = await chain.client.makeLightTx(Types.remittance, remittanceData);
-    await axios.post(url, lightTx.toJson());
+    let res = await axios.post(url, lightTx.toJson());
+    console.log(res.data.receiptData.stageHeight);
     return lightTx.lightTxHash;
   } catch(e) {
     console.log(e);

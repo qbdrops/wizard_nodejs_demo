@@ -56,7 +56,7 @@ infinitechain.initialize().then(async () => {
   for (let i = 0; i < txNumber; i++) {
     try{
       let [from, to] = await getRandomPair(chains, addressPool);
-      console.log(await remittance(from, to, 0.01 / txNumber));
+      console.log(await remittance(from, to, 0.009 / txNumber));
     } catch (e) {
       console.log(e);
     }
@@ -70,7 +70,7 @@ let remittance = async (chain, to, value) => {
     to: to,
     assetID: '0',
     value: value,
-    fee: 0.002
+    fee: 0.001 / txNumber
   };
   let metadata = {
     client: '11111',
