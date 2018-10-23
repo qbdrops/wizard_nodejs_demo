@@ -4,6 +4,7 @@ const env = require('../env');
 const axios = require('axios');
 const Web3 = require('web3');
 const util = require('ethereumjs-util');
+// const { proposeDeposit, deploytoken,  } = require('./utils/IFCHealper');
 
 const db = level('./db', { valueEncoding: 'json' });
 const Receipt = wizard.Receipt;
@@ -108,62 +109,99 @@ const infinitechain = new wizard.InfinitechainBuilder()
   .setStorage('level', db)
   .build(); 
 
+// IFCHelper
+const proposeDeposit = async () => {
+  const depositLightTx = await infinitechain.client.makeProposeDeposit();
+  const response = await axios.post(url, depositLightTx.toJson());
+  const depositReceiptJson = response.data;
+  const depositReceipt = new Receipt(depositReceiptJson);
+  await infinitechain.client.saveReceipt(depositReceipt);
+  return depositReceipt;
+};
+const deploytoken = async () => {
+  const assetList = await infinitechain.gringotts.getAssetList();
+  const assetAddress = assetList[1].asset_address;
+  const boosterAddress = infinitechain.contract.booster().options.address;
+  const token = new web3.eth.Contract(abi, assetAddress);
+  return { assetAddress, boosterAddress, token };
+};
+
 beforeAll(async () => {
   await infinitechain.initialize();
 });
 
 describe('Bolt integration test', () => {
-  test('test propose deposit', async () => {
-    const from = '0x' + infinitechain.signer.getAddress();
-    const to = infinitechain.contract.booster().options.address;
-    const value = web3.utils.toHex(web3.utils.toWei('10000', 'ether'));
-    // Simulate proposeDeposit
-    const serializedTx = await infinitechain.contract._signRawTransaction(null, from, to, value, null);
-    infinitechain.contract._sendRawTransaction(serializedTx);
+  describe('test propose deposit', () => {
+    test('should send transaction', async () => {
+      const from = '0x' + infinitechain.signer.getAddress(); //client address
+      const to = infinitechain.contract.booster().options.address; // contract address
+      const value = web3.utils.toHex(web3.utils.toWei('10000', 'ether'));
+      const serializedTx = await infinitechain.contract._signRawTransaction(null, from, to, value, null);
+      infinitechain.contract._sendRawTransaction(serializedTx);
+    }, 20000);
 
-    const depositLightTx = await infinitechain.client.makeProposeDeposit();
-    const response = await axios.post(url, depositLightTx.toJson());
-    const depositReceiptJson = response.data;
-    const depositReceipt = new Receipt(depositReceiptJson);
-    await infinitechain.client.saveReceipt(depositReceipt);
-    expect(depositReceipt).toBeDefined();
-  }, 30000);
-  test('test erc20 propose deposit', async done => {
-    const assetList = await infinitechain.gringotts.getAssetList();
-    const assetAddress = assetList[1].asset_address;
-    const boosterAddress = infinitechain.contract.booster().options.address;
-    const token = new web3.eth.Contract(abi, assetAddress);
-    token.once('Approval', {
-      filter: { _owner: '0x' + fromAddress },
-      toBlock: 'latest'
-    }, async (err, result) => {
-      expect(result).toBeDefined();
-      // proposeDeposit
-      const proposeData = {
-        depositAddress: fromAddress,
-        depositValue: web3.utils.toWei('10000'),
-        depositAssetAddress: assetAddress.substring(2)
-      };
-      // call booster contract to call transferFrom to get token. If success, write depositLog.
-      infinitechain.client.proposeTokenDeposit(proposeData);
-      const depositLightTx = await infinitechain.client.makeProposeDeposit();
-      
-      const response = await axios.post(url, depositLightTx.toJson());
-      const depositReceiptJson = response.data;
-      const depositReceipt = new Receipt(depositReceiptJson);
-      await infinitechain.client.saveReceipt(depositReceipt);
-      expect(depositReceipt).toBeDefined();
+    test('should propose deposit', async (done) => {    
+      let eventLightTxHash = null;
+      infinitechain.event.onDeposit((err, result) => {
+        eventLightTxHash = result.returnValues._lightTxHash;
+      });
+      const depositReceipt = await proposeDeposit();
+      const receiptLightTxHash = depositReceipt.lightTxHash;
+      expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
       done();
-    });
-    // approve booster to get token
-    const tXMethodData = await token.methods.approve(boosterAddress, web3.utils.toWei('10000')).encodeABI();
-    const serializedTx = await infinitechain.contract._signRawTransaction(tXMethodData, '0x' + fromAddress, assetAddress, '0x00', null);
-    infinitechain.contract._sendRawTransaction(serializedTx);
-
-    // onDeposit
-    infinitechain.event.onDeposit((err, result) => {
-      expect(result).toBeDefined();
-    });
+    }, 20000);
+  });
+  describe('test erc20 propose deposit', async () => {
+    test('should propose deposit', async done => { 
+      const { assetAddress, boosterAddress, token } = await deploytoken();
+      token.once('Approval', {
+        filter: { _owner: '0x' + fromAddress },
+        toBlock: 'latest'
+      }, async (err, result) => {
+        expect(result).toBeDefined();
+        // proposeDeposit
+        const proposeData = {
+          depositAddress: fromAddress,
+          depositValue: web3.utils.toWei('10000'),
+          depositAssetAddress: assetAddress.substring(2)
+        };
+        // call booster contract to call transferFrom to get token. If success, write depositLog.
+        infinitechain.client.proposeTokenDeposit(proposeData);
   
-  }, 30000);
+        let eventLightTxHash = null;
+        infinitechain.event.onDeposit((err, result) => {
+          eventLightTxHash = result.returnValues._lightTxHash;
+        });
+        const depositReceipt = await proposeDeposit();
+        const receiptLightTxHash = depositReceipt.lightTxHash;
+        expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
+        done();
+      });
+      // approve booster to get token
+      const tXMethodData = await token.methods.approve(boosterAddress, web3.utils.toWei('10000')).encodeABI();
+      const serializedTx = await infinitechain.contract._signRawTransaction(tXMethodData, '0x' + fromAddress, assetAddress, '0x00', null);
+      infinitechain.contract._sendRawTransaction(serializedTx);
+    }, 30000);
+  });
+  describe('test erc223 propose deposit', async() => {
+    test('should send transaction', async () => {
+      const from = '0x' + infinitechain.signer.getAddress();
+      const { assetAddress, boosterAddress, token } = await deploytoken();
+      
+      const tXMethodData = await token.methods.transfer(boosterAddress, web3.utils.toWei('10000')).encodeABI();
+      const serializedTx = await infinitechain.contract._signRawTransaction(tXMethodData, from, assetAddress, '0x00', null);
+      infinitechain.contract._sendRawTransaction(serializedTx);
+    }, 20000);
+      
+    test('should propose deposit', async (done) => {
+      let eventLightTxHash = null;
+      infinitechain.event.onDeposit((err, result) => {
+        eventLightTxHash = result.returnValues._lightTxHash;
+      });
+      const depositReceipt = await proposeDeposit();
+      const receiptLightTxHash = depositReceipt.lightTxHash;
+      expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
+      done();
+    }, 20000);
+  }); 
 });
