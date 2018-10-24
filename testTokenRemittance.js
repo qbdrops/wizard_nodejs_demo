@@ -79,8 +79,7 @@ let remittance = async (chain, to, value) => {
   try {
     let lightTx = await chain.client.makeLightTx(Types.remittance, remittanceData);
     let res = await axios.post(url, lightTx.toJson());
-    console.log(res.data.receiptData.stageHeight);
-    return lightTx.lightTxHash;
+    return res.data.receiptData.lightTxHash;
   } catch(e) {
     console.log(e);
   }
