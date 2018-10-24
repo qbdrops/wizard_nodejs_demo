@@ -10,10 +10,13 @@
     "verbose": true,
     "reporters": [
       "default",
-      ["./node_modules/jest-html-reporter", {
-        "pageTitle": "Test Report",
-        "outputPath": "test-report/index.html"
-      }]
+      [
+        "./node_modules/jest-html-reporter",
+        {
+          "pageTitle": "Test Report",
+          "outputPath": "test-report/index.html"
+        }
+      ]
     ]
   },
   "author": "",
@@ -30,7 +33,7 @@
     "path": "^0.12.7",
     "uninstall": "0.0.0",
     "web3": "^1.0.0-beta.33",
-    "wizard_nodejs": "^1.3.0"
+    "wizard_nodejs": "^1.4.1"
   },
   "devDependencies": {
     "babel-eslint": "^8.2.3",
