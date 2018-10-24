@@ -9,6 +9,7 @@ const util = require('ethereumjs-util');
 const db = level('./db', { valueEncoding: 'json' });
 const Receipt = wizard.Receipt;
 
+const Types = wizard.Types;
 const url = 'http://127.0.0.1:3001/pay';
 const web3 = new Web3(env.web3Url);
 const abi = [
@@ -253,6 +254,36 @@ describe('Bolt integration test', () => {
       const receiptLightTxHash = withdrawalReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
       done();
+    }, 30000);
+  });
+  describe.only('test remittance', async () => {
+    test('should instant withdraw token', async () => {
+    // get balance:
+      const toAddress = new Array(39).fill(0).join('') + '1';   
+      const gringottsUrl = `http://127.0.0.1:3000/balance/${toAddress}`;
+      let remittance = async (chain, to, value) => {
+        let remittanceData = {
+          from: chain.signer.getAddress(),
+          to: to,
+          assetID: '0',
+          value: value,
+          fee: 0.002
+        };
+        let metadata = {
+          client: '11111',
+          server: '22222'
+        };
+        try {
+          let lightTx = await chain.client.makeLightTx(Types.remittance, remittanceData, metadata);
+          await axios.post(url, lightTx.toJson());
+          return lightTx.lightTxHash;
+        } catch(e) {
+          console.log(e);
+        }
+      };
+      await remittance(infinitechain, toAddress, 0.01);
+      const response = await axios.get(gringottsUrl);
+      console.log(response.data);
     }, 30000);
   });
 });
