@@ -158,7 +158,7 @@ describe('Bolt integration test', () => {
         filter: { _owner: '0x' + fromAddress },
         toBlock: 'latest'
       }, async (err, result) => {
-        expect(result).toBeDefined();
+        expect(result.transactionHash).toBeDefined();
         // proposeDeposit
         const proposeData = {
           depositAddress: fromAddress,
@@ -204,4 +204,40 @@ describe('Bolt integration test', () => {
       done();
     }, 20000);
   }); 
+  describe('test get propose deposit', async() => {
+    test('should check propose deposit status', async () => {
+      const depositLightTxs = await infinitechain.client.getProposeDeposit();
+      let counter = 0;
+      for (let i = 0; i < depositLightTxs.length; i++) {
+        let response = await axios.post(url, depositLightTxs[i].toJson());
+        let depositReceiptJson = response.data;
+        counter+=1;
+        let depositReceipt = new Receipt(depositReceiptJson);
+        await infinitechain.client.saveReceipt(depositReceipt);
+      }
+      expect(depositLightTxs).toHaveLength(counter);
+    }, 20000);
+  });
+  describe('test instant withdraw', async () => {
+    test('should instant withdraw', async (done) => {
+      let eventLightTxHash;
+      infinitechain.event.onInstantWithdraw((err, result) => {
+        eventLightTxHash = result.returnValues._lightTxHash;
+      });
+
+      // instantWithdraw()
+      const withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal({
+        assetID: '0',
+        value: 0.0000000001
+      });
+      const response = await axios.post(url, withdrawalLightTx.toJson());
+      const withdrawalReceiptJson = response.data;
+      const withdrawalReceipt = new Receipt(withdrawalReceiptJson);
+      await infinitechain.client.saveReceipt(withdrawalReceipt);
+
+      const receiptLightTxHash = withdrawalReceipt.lightTxHash;
+      expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
+      done();
+    }, 20000);
+  });
 });

@@ -17,7 +17,7 @@ let infinitechain = new InfinitechainBuilder()
 infinitechain.initialize().then(async () => {
   try {
     let depositLightTxs = await infinitechain.client.getProposeDeposit();
-    console.log('Still has ' + depositLightTxs.length + ' transaction no sent.')
+    console.log('Still has ' + depositLightTxs.length + ' transaction no sent.');
     for (let i = 0; i < depositLightTxs.length; i++) {
       let response = await axios.post(url, depositLightTxs[i].toJson());
       let depositReceiptJson = response.data;
