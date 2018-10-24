@@ -4,3 +4,4 @@ env.js
 .node-xmlhttprequest-sync-*
 token.json
 credentials.json
+test-report

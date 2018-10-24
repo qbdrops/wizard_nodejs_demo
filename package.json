@@ -4,7 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
+  },
+  "jest": {
+    "verbose": true,
+    "reporters": [
+      "default",
+      ["./node_modules/jest-html-reporter", {
+        "pageTitle": "Test Report",
+        "outputPath": "test-report/index.html"
+      }]
+    ]
   },
   "author": "",
   "license": "ISC",
@@ -12,6 +22,7 @@
     "axios": "^0.17.1",
     "bignumber.js": "^7.0.1",
     "cors": "^2.8.4",
+    "eslint-plugin-jest": "^21.25.1",
     "ethereumjs-util": "^5.1.5",
     "express": "^4.16.2",
     "googleapis": "^32.0.0",
@@ -24,6 +35,8 @@
   "devDependencies": {
     "babel-eslint": "^8.2.3",
     "eslint": "^4.19.1",
+    "jest": "^23.6.0",
+    "jest-html-reporter": "^2.4.2",
     "websocket": "^1.0.26"
   }
 }
