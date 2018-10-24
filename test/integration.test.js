@@ -125,6 +125,19 @@ const deploytoken = async () => {
   const token = new web3.eth.Contract(abi, assetAddress);
   return { assetAddress, boosterAddress, token };
 };
+const instantWithdraw = async (index, amount) => {
+  const assetList = await infinitechain.gringotts.getAssetList();
+  const assetAddress = assetList[index].asset_address;
+  const withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal({
+    assetID: assetAddress,
+    value: amount
+  });
+  const response = await axios.post(url, withdrawalLightTx.toJson());
+  const withdrawalReceiptJson = response.data;
+  const withdrawalReceipt = new Receipt(withdrawalReceiptJson);
+  await infinitechain.client.saveReceipt(withdrawalReceipt);
+  return withdrawalReceipt;
+};
 
 beforeAll(async () => {
   await infinitechain.initialize();
@@ -224,20 +237,22 @@ describe('Bolt integration test', () => {
       infinitechain.event.onInstantWithdraw((err, result) => {
         eventLightTxHash = result.returnValues._lightTxHash;
       });
-
-      // instantWithdraw()
-      const withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal({
-        assetID: '0',
-        value: 0.0000000001
-      });
-      const response = await axios.post(url, withdrawalLightTx.toJson());
-      const withdrawalReceiptJson = response.data;
-      const withdrawalReceipt = new Receipt(withdrawalReceiptJson);
-      await infinitechain.client.saveReceipt(withdrawalReceipt);
-
+      const withdrawalReceipt = await instantWithdraw(0, 0.0000000001);
       const receiptLightTxHash = withdrawalReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
       done();
     }, 20000);
+  });
+  describe('test token instant withdraw', async () => {
+    test('should instant withdraw token', async (done) => {
+      let eventLightTxHash;
+      infinitechain.event.onInstantWithdraw((err, result) => {
+        eventLightTxHash = result.returnValues._lightTxHash;
+      });
+      const withdrawalReceipt = await instantWithdraw(1, 1);
+      const receiptLightTxHash = withdrawalReceipt.lightTxHash;
+      expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
+      done();
+    }, 30000);
   });
 });
