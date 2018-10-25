@@ -321,3 +321,9 @@ To learn more about BOLT protocol and how the server work, you can checkout BOLT
 * [BOLT white paper](https://github.com/BOLT-Protocol/wiki/blob/master/white_paper_20180416.pdf)
 * [BOLT yellow paper](https://github.com/BOLT-Protocol/wiki/blob/master/yellow_paper_eng.md)
 * [BOLT wiki](https://github.com/BOLT-Protocol/wiki)
+
+
+
+## License
+SSPL
+https://www.mongodb.com/licensing/server-side-public-license
