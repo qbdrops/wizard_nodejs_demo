@@ -4,7 +4,6 @@ const env = require('../env');
 const axios = require('axios');
 const Web3 = require('web3');
 const util = require('ethereumjs-util');
-// const { proposeDeposit, deploytoken,  } = require('./utils/IFCHealper');
 
 const db = level('./db', { valueEncoding: 'json' });
 const Receipt = wizard.Receipt;
@@ -111,7 +110,7 @@ const infinitechain = new wizard.InfinitechainBuilder()
   .build(); 
 
 // IFCHelper
-const proposeDeposit = async () => {
+const deposit = async () => {
   const depositLightTx = await infinitechain.client.makeProposeDeposit();
   const response = await axios.post(url, depositLightTx.toJson());
   const depositReceiptJson = response.data;
@@ -125,7 +124,7 @@ const deploytoken = async () => {
   const token = new web3.eth.Contract(abi, assetAddress);
   return { assetAddress, boosterAddress, token };
 };
-const instantWithdraw = async (index, amount) => {
+const withdraw = async (index, amount) => {
   const assetAddress = await getGringottsAssetAddress(index);
   const withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal({
     assetID: assetAddress,
@@ -137,12 +136,12 @@ const instantWithdraw = async (index, amount) => {
   await infinitechain.client.saveReceipt(withdrawalReceipt);
   return withdrawalReceipt;
 };
-const remittance = async (chain, to, value, assetID) => {
+const remittance = async (chain, to, amount, assetID) => {
   const remittanceData = {
     from: chain.signer.getAddress(),
     to: to,
     assetID: assetID,
-    value: value,
+    value: amount,
     fee: 0.001
   };
   const metadata = {
@@ -178,7 +177,7 @@ describe('Bolt integration test', () => {
       infinitechain.event.onDeposit((err, result) => {
         eventLightTxHash = result.returnValues._lightTxHash;
       });
-      const depositReceipt = await proposeDeposit();
+      const depositReceipt = await deposit();
       const receiptLightTxHash = depositReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
       done();
@@ -192,7 +191,6 @@ describe('Bolt integration test', () => {
         toBlock: 'latest'
       }, async (err, result) => {
         expect(result.transactionHash).toBeDefined();
-        // proposeDeposit
         const proposeData = {
           depositAddress: fromAddress,
           depositValue: web3.utils.toWei('10000'),
@@ -205,7 +203,7 @@ describe('Bolt integration test', () => {
         infinitechain.event.onDeposit((err, result) => {
           eventLightTxHash = result.returnValues._lightTxHash;
         });
-        const depositReceipt = await proposeDeposit();
+        const depositReceipt = await deposit();
         const receiptLightTxHash = depositReceipt.lightTxHash;
         expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
         done();
@@ -231,7 +229,7 @@ describe('Bolt integration test', () => {
       infinitechain.event.onDeposit((err, result) => {
         eventLightTxHash = result.returnValues._lightTxHash;
       });
-      const depositReceipt = await proposeDeposit();
+      const depositReceipt = await deposit();
       const receiptLightTxHash = depositReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
       done();
@@ -251,31 +249,31 @@ describe('Bolt integration test', () => {
       expect(depositLightTxs).toHaveLength(counter);
     }, 20000);
   });
-  describe('test instant withdraw',  () => {
+  describe('test instant withdraw', () => {
     test('should instant withdraw', async (done) => {
       let eventLightTxHash;
       infinitechain.event.onInstantWithdraw((err, result) => {
         eventLightTxHash = result.returnValues._lightTxHash;
       });
-      const withdrawalReceipt = await instantWithdraw(0, 0.0000000001);
+      const withdrawalReceipt = await withdraw(0, 0.0000000001);
       const receiptLightTxHash = withdrawalReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
       done();
     }, 20000);
   });
-  describe('test token instant withdraw',  () => {
+  describe('test token instant withdraw', () => {
     test('should instant withdraw token', async (done) => {
       let eventLightTxHash;
       infinitechain.event.onInstantWithdraw((err, result) => {
         eventLightTxHash = result.returnValues._lightTxHash;
       });
-      const withdrawalReceipt = await instantWithdraw(1, 1);
+      const withdrawalReceipt = await withdraw(1, 1);
       const receiptLightTxHash = withdrawalReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
       done();
     }, 30000);
   });
-  describe('test remittance',  () => {
+  describe('test remittance', () => {
     test('should remittance', async () => {
       const toAddress = new Array(39).fill(0).join('') + '1';   
       const gringottsUrl = `http://127.0.0.1:3000/balance/${toAddress}`;
@@ -294,7 +292,7 @@ describe('Bolt integration test', () => {
       expect(receiptBalance).toBe(parseInt(afterBalance));
     }, 30000);
   });
-  describe('test token remittance',  () => {
+  describe('test token remittance', () => {
     test('should remittance token', async () => {
       const toAddress = new Array(39).fill(0).join('') + '1';   
       const gringottsUrl = `http://127.0.0.1:3000/balance/${toAddress}`;
@@ -311,6 +309,30 @@ describe('Bolt integration test', () => {
 
       expect(afterBalance - beforeBalance).toBe(0.01*10**18);
       expect(receiptBalance).toBe(parseInt(afterBalance));
+    }, 30000);
+  });
+  describe('test propose withdraw', () => {
+    test('should propose withdraw', async (done) => {
+      let eventLightTxHash;
+      infinitechain.event.onProposeWithdrawal((err, result) => {
+        eventLightTxHash = result.returnValues._lightTxHash;
+      });
+      const withdrawalReceipt = await withdraw(0, 20);
+      const receiptLightTxHash = withdrawalReceipt.lightTxHash;
+      expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
+      done();
+    }, 30000);
+  });
+  describe('test token propose withdraw', () => {
+    test('should propose withdraw token', async (done) => {
+      let eventLightTxHash;
+      infinitechain.event.onProposeWithdrawal((err, result) => {
+        eventLightTxHash = result.returnValues._lightTxHash;
+      });
+      const withdrawalReceipt = await withdraw(1, 20);
+      const receiptLightTxHash = withdrawalReceipt.lightTxHash;
+      expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
+      done();
     }, 30000);
   });
 });
