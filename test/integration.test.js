@@ -4,11 +4,11 @@ const env = require('../env');
 const axios = require('axios');
 const Web3 = require('web3');
 const util = require('ethereumjs-util');
-// const { proposeDeposit, deploytoken,  } = require('./utils/IFCHealper');
 
 const db = level('./db', { valueEncoding: 'json' });
 const Receipt = wizard.Receipt;
 
+const Types = wizard.Types;
 const url = 'http://127.0.0.1:3001/pay';
 const web3 = new Web3(env.web3Url);
 const abi = [
@@ -110,7 +110,7 @@ const infinitechain = new wizard.InfinitechainBuilder()
   .build(); 
 
 // IFCHelper
-const proposeDeposit = async () => {
+const deposit = async () => {
   const depositLightTx = await infinitechain.client.makeProposeDeposit();
   const response = await axios.post(url, depositLightTx.toJson());
   const depositReceiptJson = response.data;
@@ -119,15 +119,13 @@ const proposeDeposit = async () => {
   return depositReceipt;
 };
 const deploytoken = async () => {
-  const assetList = await infinitechain.gringotts.getAssetList();
-  const assetAddress = assetList[1].asset_address;
+  const assetAddress = await getGringottsAssetAddress(1);
   const boosterAddress = infinitechain.contract.booster().options.address;
   const token = new web3.eth.Contract(abi, assetAddress);
   return { assetAddress, boosterAddress, token };
 };
-const instantWithdraw = async (index, amount) => {
-  const assetList = await infinitechain.gringotts.getAssetList();
-  const assetAddress = assetList[index].asset_address;
+const withdraw = async (index, amount) => {
+  const assetAddress = await getGringottsAssetAddress(index);
   const withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal({
     assetID: assetAddress,
     value: amount
@@ -137,6 +135,27 @@ const instantWithdraw = async (index, amount) => {
   const withdrawalReceipt = new Receipt(withdrawalReceiptJson);
   await infinitechain.client.saveReceipt(withdrawalReceipt);
   return withdrawalReceipt;
+};
+const remittance = async (chain, to, amount, assetID) => {
+  const remittanceData = {
+    from: chain.signer.getAddress(),
+    to: to,
+    assetID: assetID,
+    value: amount,
+    fee: 0.001
+  };
+  const metadata = {
+    client: '11111',
+    server: '22222'
+  };
+  const lightTx = await chain.client.makeLightTx(Types.remittance, remittanceData, metadata);
+  const res = await axios.post(url, lightTx.toJson());
+  return res.data;
+};
+const getGringottsAssetAddress = async index => {
+  const assetList = await infinitechain.gringotts.getAssetList();
+  const assetAddress = assetList[index].asset_address;
+  return assetAddress;
 };
 
 beforeAll(async () => {
@@ -154,17 +173,17 @@ describe('Bolt integration test', () => {
     }, 20000);
 
     test('should propose deposit', async (done) => {    
-      let eventLightTxHash = null;
+      let eventLightTxHash;
       infinitechain.event.onDeposit((err, result) => {
         eventLightTxHash = result.returnValues._lightTxHash;
       });
-      const depositReceipt = await proposeDeposit();
+      const depositReceipt = await deposit();
       const receiptLightTxHash = depositReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
       done();
     }, 20000);
   });
-  describe('test erc20 propose deposit', async () => {
+  describe('test erc20 propose deposit', () => {
     test('should propose deposit', async done => { 
       const { assetAddress, boosterAddress, token } = await deploytoken();
       token.once('Approval', {
@@ -172,7 +191,6 @@ describe('Bolt integration test', () => {
         toBlock: 'latest'
       }, async (err, result) => {
         expect(result.transactionHash).toBeDefined();
-        // proposeDeposit
         const proposeData = {
           depositAddress: fromAddress,
           depositValue: web3.utils.toWei('10000'),
@@ -185,7 +203,7 @@ describe('Bolt integration test', () => {
         infinitechain.event.onDeposit((err, result) => {
           eventLightTxHash = result.returnValues._lightTxHash;
         });
-        const depositReceipt = await proposeDeposit();
+        const depositReceipt = await deposit();
         const receiptLightTxHash = depositReceipt.lightTxHash;
         expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
         done();
@@ -196,7 +214,7 @@ describe('Bolt integration test', () => {
       infinitechain.contract._sendRawTransaction(serializedTx);
     }, 30000);
   });
-  describe('test erc223 propose deposit', async() => {
+  describe('test erc223 propose deposit', () => {
     test('should send transaction', async () => {
       const from = '0x' + infinitechain.signer.getAddress();
       const { assetAddress, boosterAddress, token } = await deploytoken();
@@ -211,13 +229,13 @@ describe('Bolt integration test', () => {
       infinitechain.event.onDeposit((err, result) => {
         eventLightTxHash = result.returnValues._lightTxHash;
       });
-      const depositReceipt = await proposeDeposit();
+      const depositReceipt = await deposit();
       const receiptLightTxHash = depositReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
       done();
     }, 20000);
   }); 
-  describe('test get propose deposit', async() => {
+  describe('test get propose deposit', () => {
     test('should check propose deposit status', async () => {
       const depositLightTxs = await infinitechain.client.getProposeDeposit();
       let counter = 0;
@@ -231,25 +249,87 @@ describe('Bolt integration test', () => {
       expect(depositLightTxs).toHaveLength(counter);
     }, 20000);
   });
-  describe('test instant withdraw', async () => {
+  describe('test instant withdraw', () => {
     test('should instant withdraw', async (done) => {
       let eventLightTxHash;
       infinitechain.event.onInstantWithdraw((err, result) => {
         eventLightTxHash = result.returnValues._lightTxHash;
       });
-      const withdrawalReceipt = await instantWithdraw(0, 0.0000000001);
+      const withdrawalReceipt = await withdraw(0, 0.0000000001);
       const receiptLightTxHash = withdrawalReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
       done();
     }, 20000);
   });
-  describe('test token instant withdraw', async () => {
+  describe('test token instant withdraw', () => {
     test('should instant withdraw token', async (done) => {
       let eventLightTxHash;
       infinitechain.event.onInstantWithdraw((err, result) => {
         eventLightTxHash = result.returnValues._lightTxHash;
       });
-      const withdrawalReceipt = await instantWithdraw(1, 1);
+      const withdrawalReceipt = await withdraw(1, 1);
+      const receiptLightTxHash = withdrawalReceipt.lightTxHash;
+      expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
+      done();
+    }, 30000);
+  });
+  describe('test remittance', () => {
+    test('should remittance', async () => {
+      const toAddress = new Array(39).fill(0).join('') + '1';   
+      const gringottsUrl = `http://127.0.0.1:3000/balance/${toAddress}`;
+      const assetAddress = await getGringottsAssetAddress(0);
+
+      let response = await axios.get(gringottsUrl, { params: { assetID: assetAddress.substring(2) } });
+      const beforeBalance = response.data.balance;
+
+      const receipt = await remittance(infinitechain, toAddress, 0.01, 0);
+      const receiptBalance = parseInt(receipt.receiptData.toBalance, 16);
+
+      response = await axios.get(gringottsUrl, { params: { assetID: assetAddress.substring(2) } });
+      const afterBalance = response.data.balance;
+
+      expect(afterBalance - beforeBalance).toBe(0.01*10**18);
+      expect(receiptBalance).toBe(parseInt(afterBalance));
+    }, 30000);
+  });
+  describe('test token remittance', () => {
+    test('should remittance token', async () => {
+      const toAddress = new Array(39).fill(0).join('') + '1';   
+      const gringottsUrl = `http://127.0.0.1:3000/balance/${toAddress}`;
+      const assetAddress = await getGringottsAssetAddress(1);
+      
+      let response = await axios.get(gringottsUrl, { params: { assetID: assetAddress.substring(2) } });
+      const beforeBalance = response.data.balance;
+
+      const receipt = await remittance(infinitechain, toAddress, 0.01, assetAddress);
+      const receiptBalance = parseInt(receipt.receiptData.toBalance, 16);
+
+      response = await axios.get(gringottsUrl, { params: { assetID: assetAddress.substring(2) } });
+      const afterBalance = response.data.balance;
+
+      expect(afterBalance - beforeBalance).toBe(0.01*10**18);
+      expect(receiptBalance).toBe(parseInt(afterBalance));
+    }, 30000);
+  });
+  describe('test propose withdraw', () => {
+    test('should propose withdraw', async (done) => {
+      let eventLightTxHash;
+      infinitechain.event.onProposeWithdrawal((err, result) => {
+        eventLightTxHash = result.returnValues._lightTxHash;
+      });
+      const withdrawalReceipt = await withdraw(0, 20);
+      const receiptLightTxHash = withdrawalReceipt.lightTxHash;
+      expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
+      done();
+    }, 30000);
+  });
+  describe('test token propose withdraw', () => {
+    test('should propose withdraw token', async (done) => {
+      let eventLightTxHash;
+      infinitechain.event.onProposeWithdrawal((err, result) => {
+        eventLightTxHash = result.returnValues._lightTxHash;
+      });
+      const withdrawalReceipt = await withdraw(1, 20);
       const receiptLightTxHash = withdrawalReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
       done();
