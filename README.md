@@ -325,5 +325,4 @@ To learn more about BOLT protocol and how the server work, you can checkout BOLT
 
 
 ## License
-SSPL
-https://www.mongodb.com/licensing/server-side-public-license
+agpl-3.0
