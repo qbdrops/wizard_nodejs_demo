@@ -1,16 +1,18 @@
 let wizard = require('wizard_nodejs');
+let level = require('level');
 let env = require('./env');
 let axios = require('axios');
-let Web3 = require('web3');
-let web3 = new Web3(env.web3Url);
+
+let db = level('./db', { valueEncoding: 'json' });
 let InfinitechainBuilder = wizard.InfinitechainBuilder;
+let Receipt = wizard.Receipt;
 let Types = wizard.Types;
 let url = 'http://127.0.0.1:3001/pay';
 let infinitechain = new InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)
   .setWeb3Url(env.web3Url)
   .setSignerKey(env.signerKey)
-  .setStorage('memory')
+  .setStorage('level', db)
   .build();
 
 let txNumber = 100;
@@ -43,25 +45,25 @@ let getRandomPair = async (chains, addressPool) => {
 };
 
 infinitechain.initialize().then(async () => {
-  console.time('Produce ' + txNumber + ' transactions');
+  console.time('Produce ' + txNumber + ' transactions.');
   // Remittance
   for (let i = 0; i < 5; i++) {
-    try{
-      await remittance(infinitechain, addressPool[i], 0.01);
+    try {
+       await remittance(infinitechain, addressPool[i], 0.01);
     } catch (e) {
       console.log(e);
     }
   }
 
   for (let i = 0; i < txNumber; i++) {
-    try{
+    try {
       let [from, to] = await getRandomPair(chains, addressPool);
       console.log(await remittance(from, to, 0.009 / txNumber));
     } catch (e) {
       console.log(e);
     }
   }
-  console.timeEnd('Produce ' + txNumber + ' transactions');
+  console.timeEnd('Produce ' + txNumber + ' transactions.');
 });
 
 let remittance = async (chain, to, value) => {
@@ -78,8 +80,10 @@ let remittance = async (chain, to, value) => {
   };
   try {
     let lightTx = await chain.client.makeLightTx(Types.remittance, remittanceData, metadata);
-    await axios.post(url, lightTx.toJson());
-    return lightTx.lightTxHash;
+    let res = await axios.post(url, lightTx.toJson());
+    let receipt = new Receipt(res.data);
+    await infinitechain.client.saveReceipt(receipt);
+    return receipt.lightTxHash;
   } catch(e) {
     console.log(e);
   }

@@ -1,9 +1,11 @@
 let wizard = require('wizard_nodejs');
+let level = require('level');
 let env = require('./env');
 let axios = require('axios');
-let Web3 = require('web3');
-let web3 = new Web3(env.web3Url);
+
+let db = level('./db', { valueEncoding: 'json' });
 let InfinitechainBuilder = wizard.InfinitechainBuilder;
+let Receipt = wizard.Receipt;
 let Types = wizard.Types;
 let url = 'http://127.0.0.1:3001/pay';
 let infinitechain = new InfinitechainBuilder()
@@ -20,7 +22,7 @@ let chains = keys.map(key => {
     .setNodeUrl(env.nodeUrl)
     .setWeb3Url(env.web3Url)
     .setSignerKey(key)
-    .setStorage('memory')
+    .setStorage('level', db)
     .build();
 });
 chains.forEach(chain => {
@@ -41,32 +43,35 @@ let getRandomPair = async (chains, addressPool) => {
     return [from, to];
   }
 };
-
+let assetList = [];
 infinitechain.initialize().then(async () => {
-  console.time('Produce ' + txNumber + ' transactions');
-  // Remittance
-  for (let i = 0; i < 5; i++) {
-    try{
-      await remittance(infinitechain, addressPool[i], txNumber * 2);
-    } catch (e) {
-      console.log(e);
+  assetList = await infinitechain.gringotts.getAssetList();
+  if (assetList.length > 1) {
+    console.time('Produce ' + txNumber + ' transactions.');
+    // Remittance
+    for (let i = 0; i < 5; i++) {
+      try {
+        await remittance(infinitechain, addressPool[i], txNumber * 2);
+      } catch (e) {
+        console.log(e);
+      }
     }
-  }
 
-  for (let i = 0; i < txNumber; i++) {
-    try{
-      let [from, to] = await getRandomPair(chains, addressPool);
-      console.log(await remittance(from, to, 1));
-    } catch (e) {
-      console.log(e);
+    for (let i = 0; i < txNumber; i++) {
+      try {
+        let [from, to] = await getRandomPair(chains, addressPool);
+        console.log(await remittance(from, to, 1));
+      } catch (e) {
+        console.log(e);
+      }
     }
+    console.timeEnd('Produce ' + txNumber + ' transactions.');
+  } else {
+    console.log('This booster do not support any token.');
   }
-  console.timeEnd('Produce ' + txNumber + ' transactions');
 });
 
 let remittance = async (chain, to, value) => {
-  let assetList = await infinitechain.gringotts.getAssetList();
-  let assetName = assetList[1].asset_name;
   let assetAddress = assetList[1].asset_address;
   let asset = assetAddress;
   let remittanceData = {
@@ -79,7 +84,9 @@ let remittance = async (chain, to, value) => {
   try {
     let lightTx = await chain.client.makeLightTx(Types.remittance, remittanceData);
     let res = await axios.post(url, lightTx.toJson());
-    return res.data.receiptData.lightTxHash;
+    let receipt = new Receipt(res.data);
+    await infinitechain.client.saveReceipt(receipt);
+    return receipt.lightTxHash;
   } catch(e) {
     console.log(e);
   }

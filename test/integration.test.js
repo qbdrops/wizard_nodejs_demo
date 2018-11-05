@@ -102,7 +102,7 @@ const abi = [
 ];
 
 const fromAddress = util.publicToAddress(util.privateToPublic(Buffer.from(env.signerKey, 'hex'))).toString('hex');
-const infinitechain = new wizard.InfinitechainBuilder() 
+const infinitechain = new wizard.InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)
   .setWeb3Url(env.web3Url)
   .setSignerKey(env.signerKey)
@@ -119,13 +119,13 @@ const deposit = async () => {
   return depositReceipt;
 };
 const deploytoken = async () => {
-  const assetAddress = await getGringottsAssetAddress(1);
+  const { assetAddress } = await getGringottsAssetAddress(1);
   const boosterAddress = infinitechain.contract.booster().options.address;
   const token = new web3.eth.Contract(abi, assetAddress);
   return { assetAddress, boosterAddress, token };
 };
 const withdraw = async (index, amount) => {
-  const assetAddress = await getGringottsAssetAddress(index);
+  const { assetAddress } = await getGringottsAssetAddress(index);
   const withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal({
     assetID: assetAddress,
     value: amount
@@ -155,7 +155,8 @@ const remittance = async (chain, to, amount, assetID) => {
 const getGringottsAssetAddress = async index => {
   const assetList = await infinitechain.gringotts.getAssetList();
   const assetAddress = assetList[index].asset_address;
-  return assetAddress;
+  const assetDecimals = assetList[index].asset_decimals;
+  return { assetAddress, assetDecimals };
 };
 
 beforeAll(async () => {
@@ -184,7 +185,7 @@ describe('Bolt integration test', () => {
     }, 20000);
   });
   describe('test erc20 propose deposit', () => {
-    test('should propose deposit', async done => { 
+    test('should propose deposit', async done => {
       const { assetAddress, boosterAddress, token } = await deploytoken();
       token.once('Approval', {
         filter: { _owner: '0x' + fromAddress },
@@ -211,20 +212,23 @@ describe('Bolt integration test', () => {
       // approve booster to get token
       const tXMethodData = await token.methods.approve(boosterAddress, web3.utils.toWei('10000')).encodeABI();
       const serializedTx = await infinitechain.contract._signRawTransaction(tXMethodData, '0x' + fromAddress, assetAddress, '0x00', null);
-      infinitechain.contract._sendRawTransaction(serializedTx);
+      infinitechain.contract._sendRawTransaction(serializedTx).then(async txHash => {
+        const receipt = await web3.eth.getTransactionReceipt(txHash);
+        expect(receipt.status).toMatch('0x1');
+      });
     }, 30000);
   });
   describe('test erc223 propose deposit', () => {
     test('should send transaction', async () => {
       const from = '0x' + infinitechain.signer.getAddress();
       const { assetAddress, boosterAddress, token } = await deploytoken();
-      
+
       const tXMethodData = await token.methods.transfer(boosterAddress, web3.utils.toWei('10000')).encodeABI();
       const serializedTx = await infinitechain.contract._signRawTransaction(tXMethodData, from, assetAddress, '0x00', null);
-      infinitechain.contract._sendRawTransaction(serializedTx);
-    }, 20000);
-      
-    test('should propose deposit', async (done) => {
+      infinitechain.contract._sendRawTransaction(serializedTx).then(async txHash => {
+        const receipt = await web3.eth.getTransactionReceipt(txHash);
+        expect(receipt.status).toMatch('0x1');
+      });
       let eventLightTxHash = null;
       infinitechain.event.onDeposit((err, result) => {
         eventLightTxHash = result.returnValues._lightTxHash;
@@ -232,7 +236,6 @@ describe('Bolt integration test', () => {
       const depositReceipt = await deposit();
       const receiptLightTxHash = depositReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
-      done();
     }, 20000);
   }); 
   describe('test get propose deposit', () => {
@@ -277,7 +280,7 @@ describe('Bolt integration test', () => {
     test('should remittance', async () => {
       const toAddress = new Array(39).fill(0).join('') + '1';   
       const gringottsUrl = `http://127.0.0.1:3000/balance/${toAddress}`;
-      const assetAddress = await getGringottsAssetAddress(0);
+      const { assetAddress, assetDecimals } = await getGringottsAssetAddress(0);
 
       let response = await axios.get(gringottsUrl, { params: { assetID: assetAddress.substring(2) } });
       const beforeBalance = response.data.balance;
@@ -288,7 +291,7 @@ describe('Bolt integration test', () => {
       response = await axios.get(gringottsUrl, { params: { assetID: assetAddress.substring(2) } });
       const afterBalance = response.data.balance;
 
-      expect(afterBalance - beforeBalance).toBe(0.01*10**18);
+      expect(afterBalance - beforeBalance).toBe(0.01*10**assetDecimals);
       expect(receiptBalance).toBe(parseInt(afterBalance));
     }, 30000);
   });
@@ -296,7 +299,7 @@ describe('Bolt integration test', () => {
     test('should remittance token', async () => {
       const toAddress = new Array(39).fill(0).join('') + '1';   
       const gringottsUrl = `http://127.0.0.1:3000/balance/${toAddress}`;
-      const assetAddress = await getGringottsAssetAddress(1);
+      const { assetAddress, assetDecimals } = await getGringottsAssetAddress(1);
       
       let response = await axios.get(gringottsUrl, { params: { assetID: assetAddress.substring(2) } });
       const beforeBalance = response.data.balance;
@@ -307,7 +310,7 @@ describe('Bolt integration test', () => {
       response = await axios.get(gringottsUrl, { params: { assetID: assetAddress.substring(2) } });
       const afterBalance = response.data.balance;
 
-      expect(afterBalance - beforeBalance).toBe(0.01*10**18);
+      expect(afterBalance - beforeBalance).toBe(0.01*10**assetDecimals);
       expect(receiptBalance).toBe(parseInt(afterBalance));
     }, 30000);
   });
