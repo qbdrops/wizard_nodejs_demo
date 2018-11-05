@@ -6,7 +6,7 @@ let axios = require('axios');
 let db = level('./db', { valueEncoding: 'json' });
 let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Receipt = wizard.Receipt;
-let url = 'http://localhost:3001/pay';
+let url = 'http://127.0.0.1:3001/pay';
 
 let infinitechain = new InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)
@@ -17,22 +17,29 @@ let infinitechain = new InfinitechainBuilder()
 
 infinitechain.initialize().then(async () => {
   let assetList = await infinitechain.gringotts.getAssetList();
-  let assetName = assetList[1].asset_name;
-  let assetAddress = assetList[1].asset_address;
-  // onInstantWithdrawal
-  infinitechain.event.onInstantWithdraw((err, result) => {
-    console.log('instantWithdraw:');
-    console.log(result);
-  });
-  // instantWithdraw
-  let withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal({
-    assetID: assetAddress,
-    value: 1
-  });
-  let response = await axios.post(url, withdrawalLightTx.toJson());
-  let withdrawalReceiptJson = response.data;
+  if (assetList.length > 1) {
+    let assetName = assetList[1].asset_name;
+    let assetAddress = assetList[1].asset_address;
+    console.log(assetName + ' instantWithdraw');
 
-  let withdrawalReceipt = new Receipt(withdrawalReceiptJson);
-  await infinitechain.client.saveReceipt(withdrawalReceipt);
-  console.log(withdrawalReceipt);
+    // onInstantWithdrawal
+    infinitechain.event.onInstantWithdraw((err, result) => {
+      console.log('instantWithdraw:');
+      console.log(result);
+    });
+
+    // instantWithdraw
+    let withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal({
+      assetID: assetAddress,
+      value: 1
+    });
+    let response = await axios.post(url, withdrawalLightTx.toJson());
+    let withdrawalReceiptJson = response.data;
+
+    let withdrawalReceipt = new Receipt(withdrawalReceiptJson);
+    await infinitechain.client.saveReceipt(withdrawalReceipt);
+    console.log(withdrawalReceipt);
+  } else {
+    console.log('This booster do not support any token.');
+  }
 });

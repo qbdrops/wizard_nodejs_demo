@@ -4,13 +4,11 @@ let env = require('./env');
 let axios = require('axios');
 
 let db = level('./db', { valueEncoding: 'json' });
+let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Receipt = wizard.Receipt;
 let url = 'http://localhost:3001/pay';
 
-let credentials;
-let token;
-
-let infinitechain = new wizard.InfinitechainBuilder()
+let infinitechain = new InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)
   .setWeb3Url(env.web3Url)
   .setSignerKey(env.signerKey)
@@ -18,7 +16,7 @@ let infinitechain = new wizard.InfinitechainBuilder()
   .build();
 
 infinitechain.initialize().then(async () => {
-  // onInstantWithdrawa
+  // onInstantWithdrawal
   infinitechain.event.onInstantWithdraw((err, result) => {
     console.log('instantWithdraw:');
     console.log(result);
