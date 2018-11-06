@@ -17,24 +17,30 @@ let infinitechain = new InfinitechainBuilder()
 
 infinitechain.initialize().then(async () => {
   let assetList = await infinitechain.gringotts.getAssetList();
-  let assetName = assetList[1].asset_name;
-  let assetAddress = assetList[1].asset_address;
-  // onProposeWithdrawal
-  infinitechain.event.onProposeWithdrawal((err, result) => {
-    console.log('proposeWithdrawal:');
-    console.log(result);
-  });
+  if (assetList.length > 1) {
+    let assetName = assetList[1].asset_name;
+    let assetAddress = assetList[1].asset_address;
+    console.log(assetName + ' proposeWithdrawal');
 
-  // proposeWithdrawal
-  let withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal({
-    assetID: assetAddress,
-    value: 20
-  });
+    // onProposeWithdrawal
+    infinitechain.event.onProposeWithdrawal((err, result) => {
+      console.log('proposeWithdrawal:');
+      console.log(result);
+    });
 
-  let response = await axios.post(url, withdrawalLightTx.toJson());
-  let withdrawalReceiptJson = response.data;
+    // proposeWithdrawal
+    let withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal({
+      assetID: assetAddress,
+      value: 20
+    });
 
-  let withdrawalReceipt = new Receipt(withdrawalReceiptJson);
-  await infinitechain.client.saveReceipt(withdrawalReceipt);
-  console.log(withdrawalReceipt);
+    let response = await axios.post(url, withdrawalLightTx.toJson());
+    let withdrawalReceiptJson = response.data;
+
+    let withdrawalReceipt = new Receipt(withdrawalReceiptJson);
+    await infinitechain.client.saveReceipt(withdrawalReceipt);
+    console.log(withdrawalReceipt);
+  } else {
+    console.log('This booster do not support any token.');
+  }
 });

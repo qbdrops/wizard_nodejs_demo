@@ -16,7 +16,6 @@ let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let LightTransaction = wizard.LightTransaction;
 
 let serverAddress = '0x' + Util.privateToAddress(Buffer.from(env.signerKey, 'hex')).toString('hex');
-console.log(serverAddress);
 let infinitechain = new InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)
   .setWeb3Url(env.web3Url)
@@ -24,7 +23,20 @@ let infinitechain = new InfinitechainBuilder()
   .setStorage('memory')
   .build();
 
-infinitechain.initialize();
+initialize = async () => {
+  infinitechain.initialize().then(() => {
+    console.log(serverAddress);
+    infinitechain.contract.web3()._provider.on('end', () => {
+      console.log('Try to reconnect to: ' + env.web3Url + ' ...');
+      new Promise((resolve) => setTimeout(resolve, 5000)).then(initialize);
+    });
+  }).catch(e => {
+    console.log(e, 'Try to reconnect to: ' + env.web3Url + ' ...');
+    new Promise((resolve) => setTimeout(resolve, 5000)).then(initialize);
+  });
+}
+
+initialize();
 
 // two phase termination
 let couldGracefulShotdown = true;
@@ -38,7 +50,6 @@ app.post('/pay', async function (req, res) {
       a: 111
     };
     lightTx = await infinitechain.server.addServerMetadata(lightTx, metadataServer);
-    // console.log(lightTx);
     if(lightTx.metadata.server) {
       lightTx.metadata.server = '';
     }

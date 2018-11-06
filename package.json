@@ -1,6 +1,6 @@
 {
   "name": "wizard_nodejs_demo",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -31,9 +31,8 @@
     "googleapis": "^32.0.0",
     "level": "^2.1.2",
     "path": "^0.12.7",
-    "uninstall": "0.0.0",
     "web3": "^1.0.0-beta.33",
-    "wizard_nodejs": "^1.4.1"
+    "wizard_nodejs": "^1.4.2"
   },
   "devDependencies": {
     "babel-eslint": "^8.2.3",
