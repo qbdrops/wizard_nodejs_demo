@@ -142,7 +142,7 @@ const remittance = async (chain, to, amount, assetID) => {
     to: to,
     assetID: assetID,
     value: amount,
-    fee: 0.001
+    fee: '0.001'
   };
   const metadata = {
     client: '11111',
@@ -258,7 +258,7 @@ describe('Bolt integration test', () => {
       infinitechain.event.onInstantWithdraw((err, result) => {
         eventLightTxHash = result.returnValues._lightTxHash;
       });
-      const withdrawalReceipt = await withdraw(0, 0.0000000001);
+      const withdrawalReceipt = await withdraw(0, '0.0000000001');
       const receiptLightTxHash = withdrawalReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
       done();
@@ -270,7 +270,7 @@ describe('Bolt integration test', () => {
       infinitechain.event.onInstantWithdraw((err, result) => {
         eventLightTxHash = result.returnValues._lightTxHash;
       });
-      const withdrawalReceipt = await withdraw(1, 1);
+      const withdrawalReceipt = await withdraw(1, '1');
       const receiptLightTxHash = withdrawalReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
       done();
@@ -285,7 +285,7 @@ describe('Bolt integration test', () => {
       let response = await axios.get(gringottsUrl, { params: { assetID: assetAddress.substring(2) } });
       const beforeBalance = response.data.balance;
 
-      const receipt = await remittance(infinitechain, toAddress, 0.01, 0);
+      const receipt = await remittance(infinitechain, toAddress, '0.01', 0);
       const receiptBalance = parseInt(receipt.receiptData.toBalance, 16);
 
       response = await axios.get(gringottsUrl, { params: { assetID: assetAddress.substring(2) } });
@@ -304,7 +304,7 @@ describe('Bolt integration test', () => {
       let response = await axios.get(gringottsUrl, { params: { assetID: assetAddress.substring(2) } });
       const beforeBalance = response.data.balance;
 
-      const receipt = await remittance(infinitechain, toAddress, 0.01, assetAddress);
+      const receipt = await remittance(infinitechain, toAddress, '0.01', assetAddress);
       const receiptBalance = parseInt(receipt.receiptData.toBalance, 16);
 
       response = await axios.get(gringottsUrl, { params: { assetID: assetAddress.substring(2) } });
@@ -320,7 +320,7 @@ describe('Bolt integration test', () => {
       infinitechain.event.onProposeWithdrawal((err, result) => {
         eventLightTxHash = result.returnValues._lightTxHash;
       });
-      const withdrawalReceipt = await withdraw(0, 20);
+      const withdrawalReceipt = await withdraw(0, '20');
       const receiptLightTxHash = withdrawalReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
       done();
@@ -332,7 +332,7 @@ describe('Bolt integration test', () => {
       infinitechain.event.onProposeWithdrawal((err, result) => {
         eventLightTxHash = result.returnValues._lightTxHash;
       });
-      const withdrawalReceipt = await withdraw(1, 20);
+      const withdrawalReceipt = await withdraw(1, '20');
       const receiptLightTxHash = withdrawalReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
       done();
