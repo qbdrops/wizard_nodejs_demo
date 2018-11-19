@@ -338,4 +338,30 @@ describe('Bolt integration test', () => {
       done();
     }, 30000);
   });
+  describe('test attach and finalize', () => {
+    test('should attach receipts created in previous test', async (done) => {
+      infinitechain.event.onAttach(async (err, result) => {
+        stageHeight = '0x' + (parseInt(stageHeight) + 1).toString(16).padStart(64, '0');
+        expect(result.returnValues._stageHeight).toBe(stageHeight);
+        done();
+      });
+      let stageHeight = await infinitechain.contract._booster.methods.stageHeight().call();
+      // finalize, remove this future
+      let finalizeRes = await axios.post(`${env.nodeUrl}/finalize`);
+      let res = await axios.post(`${env.nodeUrl}/attach`);
+      expect(res.data.ok).toBe(true);
+    }, 30000);
+    test('should attach when there is not any receipt in database', async (done) => {
+      infinitechain.event.onAttach(async (err, result) => {
+        stageHeight = '0x' + (parseInt(stageHeight) + 1).toString(16).padStart(64, '0');
+        expect(result.returnValues._stageHeight).toBe(stageHeight);
+        done();
+      });
+      let stageHeight = await infinitechain.contract._booster.methods.stageHeight().call();
+      // finalize, remove this future
+      let finalizeRes = await axios.post(`${env.nodeUrl}/finalize`);
+      let res = await axios.post(`${env.nodeUrl}/attach`);
+      expect(res.data.ok).toBe(true);
+    }, 30000);
+  });
 });
