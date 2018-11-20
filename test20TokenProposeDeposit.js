@@ -7,95 +7,6 @@ let db = level('./db', { valueEncoding: 'json' });
 let InfinitechainBuilder = wizard.InfinitechainBuilder;
 let Receipt = wizard.Receipt;
 let url = 'http://127.0.0.1:3001/pay';
-let abi = [
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "_to",
-        "type": "address"
-      },
-      {
-        "name": "_value",
-        "type": "uint256"
-      }
-    ],
-    "name": "transfer",
-    "outputs": [
-      {
-        "name": "success",
-        "type": "bool"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [
-      {
-        "name": "_owner",
-        "type": "address"
-      }
-    ],
-    "name": "balanceOf",
-    "outputs": [
-      {
-        "name": "balance",
-        "type": "uint256"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "name": "_spender",
-        "type": "address"
-      },
-      {
-        "name": "_value",
-        "type": "uint256"
-      }
-    ],
-    "name": "approve",
-    "outputs": [
-      {
-        "name": "success",
-        "type": "bool"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "name": "_owner",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "name": "_spender",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "name": "_value",
-        "type": "uint256"
-      }
-    ],
-    "name": "Approval",
-    "type": "event"
-  }
-];
 
 let infinitechain = new InfinitechainBuilder()
   .setNodeUrl(env.nodeUrl)
@@ -113,7 +24,7 @@ infinitechain.initialize().then(async () => {
     console.log(assetName + ' token proposeDeposit, you should transfer token to booster.');
     let web3 = infinitechain.contract.web3();
     let boosterAddress = infinitechain.contract.booster().options.address;
-    let token = new web3.eth.Contract(abi, assetAddress);
+    let token = infinitechain.contract.erc20(assetAddress);
 
     token.once('Approval', {
       filter: { _owner: fromAddress },
@@ -124,8 +35,8 @@ infinitechain.initialize().then(async () => {
       // proposeDeposit
       let proposeData = {
         depositAddress: fromAddress,
-        depositValue: web3.utils.toWei('10000'),
-        depositAssetAddress: assetAddress.substring(2)
+        depositValue: '10000',
+        depositAssetAddress: assetAddress
       };
       // call booster contract to call transferFrom to get token. If success, write depositLog.
       infinitechain.client.proposeTokenDeposit(proposeData).then(console.log);

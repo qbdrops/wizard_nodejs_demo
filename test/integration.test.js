@@ -11,95 +11,6 @@ const Receipt = wizard.Receipt;
 const Types = wizard.Types;
 const url = 'http://127.0.0.1:3001/pay';
 const web3 = new Web3(env.web3Url);
-const abi = [
-  {
-    'constant': false,
-    'inputs': [
-      {
-        'name': '_to',
-        'type': 'address'
-      },
-      {
-        'name': '_value',
-        'type': 'uint256'
-      }
-    ],
-    'name': 'transfer',
-    'outputs': [
-      {
-        'name': 'success',
-        'type': 'bool'
-      }
-    ],
-    'payable': false,
-    'stateMutability': 'nonpayable',
-    'type': 'function'
-  },
-  {
-    'constant': true,
-    'inputs': [
-      {
-        'name': '_owner',
-        'type': 'address'
-      }
-    ],
-    'name': 'balanceOf',
-    'outputs': [
-      {
-        'name': 'balance',
-        'type': 'uint256'
-      }
-    ],
-    'payable': false,
-    'stateMutability': 'view',
-    'type': 'function'
-  },
-  {
-    'constant': false,
-    'inputs': [
-      {
-        'name': '_spender',
-        'type': 'address'
-      },
-      {
-        'name': '_value',
-        'type': 'uint256'
-      }
-    ],
-    'name': 'approve',
-    'outputs': [
-      {
-        'name': 'success',
-        'type': 'bool'
-      }
-    ],
-    'payable': false,
-    'stateMutability': 'nonpayable',
-    'type': 'function'
-  },
-  {
-    'anonymous': false,
-    'inputs': [
-      {
-        'indexed': true,
-        'name': '_owner',
-        'type': 'address'
-      },
-      {
-        'indexed': true,
-        'name': '_spender',
-        'type': 'address'
-      },
-      {
-        'indexed': false,
-        'name': '_value',
-        'type': 'uint256'
-      }
-    ],
-    'name': 'Approval',
-    'type': 'event'
-  }
-];
 
 const fromAddress = util.publicToAddress(util.privateToPublic(Buffer.from(env.signerKey, 'hex'))).toString('hex');
 const infinitechain = new wizard.InfinitechainBuilder()
@@ -121,7 +32,7 @@ const deposit = async () => {
 const deploytoken = async () => {
   const { assetAddress } = await getGringottsAssetAddress(1);
   const boosterAddress = infinitechain.contract.booster().options.address;
-  const token = new web3.eth.Contract(abi, assetAddress);
+  const token = infinitechain.contract.erc20(assetAddress);
   return { assetAddress, boosterAddress, token };
 };
 const withdraw = async (index, amount) => {
@@ -194,8 +105,8 @@ describe('Bolt integration test', () => {
         expect(result.transactionHash).toBeDefined();
         const proposeData = {
           depositAddress: fromAddress,
-          depositValue: web3.utils.toWei('10000'),
-          depositAssetAddress: assetAddress.substring(2)
+          depositValue: '10000',
+          depositAssetAddress: assetAddress
         };
         // call booster contract to call transferFrom to get token. If success, write depositLog.
         infinitechain.client.proposeTokenDeposit(proposeData);
