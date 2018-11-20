@@ -346,20 +346,29 @@ describe('Bolt integration test', () => {
         done();
       });
       let stageHeight = await infinitechain.contract._booster.methods.stageHeight().call();
-      // finalize, remove this future
-      let finalizeRes = await axios.post(`${env.nodeUrl}/finalize`);
       let res = await axios.post(`${env.nodeUrl}/attach`);
       expect(res.data.ok).toBe(true);
     }, 30000);
+
+    test('should finalize the stage', async (done) => {
+      infinitechain.event.onFinalize((err, result) => {
+        stageHeight = '0x' + parseInt(stageHeight).toString(16).padStart(64, '0');
+        done();
+      });
+      let stageHeight = await infinitechain.contract._booster.methods.stageHeight().call();
+      let res = await axios.post(`${env.nodeUrl}/finalize`);
+      expect(res.data.ok).toBe(true);
+    }, 30000);
+
     test('should attach when there is not any receipt in database', async (done) => {
       infinitechain.event.onAttach(async (err, result) => {
         stageHeight = '0x' + (parseInt(stageHeight) + 1).toString(16).padStart(64, '0');
         expect(result.returnValues._stageHeight).toBe(stageHeight);
+        // finalize, remove this future
+        let finalizeRes = await axios.post(`${env.nodeUrl}/finalize`);
         done();
       });
       let stageHeight = await infinitechain.contract._booster.methods.stageHeight().call();
-      // finalize, remove this future
-      let finalizeRes = await axios.post(`${env.nodeUrl}/finalize`);
       let res = await axios.post(`${env.nodeUrl}/attach`);
       expect(res.data.ok).toBe(true);
     }, 30000);
