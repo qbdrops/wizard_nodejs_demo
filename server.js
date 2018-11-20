@@ -40,6 +40,12 @@ initialize();
 
 // two phase termination
 let couldGracefulShotdown = true;
+let types = {
+  deposit: 0,
+  withdrawal: 1,
+  instantWithdrawal: 2,
+  remittance: 3
+};
 
 app.post('/pay', async function (req, res) {
   try {
@@ -55,8 +61,16 @@ app.post('/pay', async function (req, res) {
     }
     let signedLightTx = infinitechain.signer.signWithServerKey(lightTx);
     let receipt = await infinitechain.server.sendLightTx(signedLightTx);
+    let isSent = true;
+    if (receipt.type() != types.remittance) {
+      isSent = await infinitechain.server.sendReceipt(receipt);
+    }
     console.timeEnd(lightTx.lightTxHash);
-    res.send(receipt);
+    if (isSent) {
+      res.send(receipt);
+    } else {
+      res.status(500).send({ errors: 'Transaction was failed' });
+    }
   } catch (e) {
     console.error(e);
     res.status(500).send({ errors: e.message });
