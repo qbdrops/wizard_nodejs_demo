@@ -69,6 +69,7 @@ const getGringottsAssetAddress = async index => {
   const assetDecimals = assetList[index].asset_decimals;
   return { assetAddress, assetDecimals };
 };
+let withdrawalReceipts = [];
 
 beforeAll(async () => {
   await infinitechain.initialize();
@@ -79,7 +80,7 @@ describe('Bolt integration test', () => {
     test('should send transaction', async () => {
       const from = '0x' + infinitechain.signer.getAddress(); //client address
       const to = infinitechain.contract.booster().options.address; // contract address
-      const value = web3.utils.toHex(web3.utils.toWei('10000', 'ether'));
+      const value = web3.utils.toHex(web3.utils.toWei('15', 'ether'));
       const serializedTx = await infinitechain.contract._signRawTransaction(null, from, to, value, null);
       infinitechain.contract._sendRawTransaction(serializedTx);
     }, 20000);
@@ -93,7 +94,7 @@ describe('Bolt integration test', () => {
       const receiptLightTxHash = depositReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
       done();
-    }, 20000);
+    }, 60000);
   });
   describe('test erc20 propose deposit', () => {
     test('should propose deposit', async done => {
@@ -127,7 +128,7 @@ describe('Bolt integration test', () => {
         const receipt = await web3.eth.getTransactionReceipt(txHash);
         expect(receipt.status).toMatch('0x1');
       });
-    }, 30000);
+    }, 120000);
   });
   describe('test erc223 propose deposit', () => {
     test('should send transaction', async () => {
@@ -147,7 +148,7 @@ describe('Bolt integration test', () => {
       const depositReceipt = await deposit();
       const receiptLightTxHash = depositReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
-    }, 20000);
+    }, 60000);
   }); 
   describe('test get propose deposit', () => {
     test('should check propose deposit status', async () => {
@@ -161,7 +162,7 @@ describe('Bolt integration test', () => {
         await infinitechain.client.saveReceipt(depositReceipt);
       }
       expect(depositLightTxs).toHaveLength(counter);
-    }, 20000);
+    }, 30000);
   });
   describe('test instant withdraw', () => {
     test('should instant withdraw', async (done) => {
@@ -169,11 +170,11 @@ describe('Bolt integration test', () => {
       infinitechain.event.onInstantWithdraw((err, result) => {
         eventLightTxHash = result.returnValues._lightTxHash;
       });
-      const withdrawalReceipt = await withdraw(0, '0.0000000001');
+      const withdrawalReceipt = await withdraw(0, '0.1');
       const receiptLightTxHash = withdrawalReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
       done();
-    }, 20000);
+    }, 30000);
   });
   describe('test token instant withdraw', () => {
     test('should instant withdraw token', async (done) => {
@@ -231,9 +232,10 @@ describe('Bolt integration test', () => {
       infinitechain.event.onProposeWithdrawal((err, result) => {
         eventLightTxHash = result.returnValues._lightTxHash;
       });
-      const withdrawalReceipt = await withdraw(0, '20');
+      const withdrawalReceipt = await withdraw(0, '11');
       const receiptLightTxHash = withdrawalReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
+      withdrawalReceipts.push(withdrawalReceipt);
       done();
     }, 30000);
   });
@@ -246,6 +248,7 @@ describe('Bolt integration test', () => {
       const withdrawalReceipt = await withdraw(1, '20');
       const receiptLightTxHash = withdrawalReceipt.lightTxHash;
       expect(eventLightTxHash).toMatch('0x' + receiptLightTxHash);
+      withdrawalReceipts.push(withdrawalReceipt);
       done();
     }, 30000);
   });
@@ -282,6 +285,24 @@ describe('Bolt integration test', () => {
       let stageHeight = await infinitechain.contract._booster.methods.stageHeight().call();
       let res = await axios.post(`${env.nodeUrl}/attach`);
       expect(res.data.ok).toBe(true);
-    }, 30000);
+    }, 60000);
+  });
+
+  describe('test withdraw after attach and finalize', () => {
+    test('should withdraw all receipts', async (done) => {
+      infinitechain.event.onWithdraw(async (err, result) => {
+        console.log('Withdraw: ', result);
+      });
+      for (let i=0; i<withdrawalReceipts.length; i++) {
+        try {
+          let txHash = await infinitechain.contract.withdraw(withdrawalReceipts[i]);
+          let isTxFinished = await infinitechain.contract.isTxFinished(txHash);
+          expect(isTxFinished).toBe(true);
+        } catch (e) {
+          console.log(`Withdrawal error: ${e.message}`)
+        }
+      }
+      done();
+    }, 90000);
   });
 });
