@@ -38,6 +38,13 @@ initialize = async () => {
 
 initialize();
 
+resendReceipt = (receipt, e) => {
+  console.log(receipt.lightTxHash, 'log change fail. Resending...', e);
+  new Promise((resolve) => setTimeout(resolve, 5000)).then(
+    infinitechain.server.sendReceipt(receipt).catch(
+      e => resendReceipt(receipt, e)));
+}
+
 // two phase termination
 let couldGracefulShotdown = true;
 
@@ -55,6 +62,13 @@ app.post('/pay', async function (req, res) {
     }
     let signedLightTx = infinitechain.signer.signWithServerKey(lightTx);
     let receipt = await infinitechain.server.sendLightTx(signedLightTx);
+    if (receipt.type() != wizard.Types.remittance) {
+      try {
+        await infinitechain.server.sendReceipt(receipt);
+      } catch (e) {
+        resendReceipt(receipt, e);
+      }
+    }
     console.timeEnd(lightTx.lightTxHash);
     res.send(receipt);
   } catch (e) {

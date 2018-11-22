@@ -49,16 +49,17 @@ infinitechain.initialize().then(async () => {
   // Remittance
   for (let i = 0; i < 5; i++) {
     try {
-       await remittance(infinitechain, addressPool[i], 0.01);
+      await remittance(infinitechain, addressPool[i], '0.01');
     } catch (e) {
       console.log(e);
     }
   }
 
   for (let i = 0; i < txNumber; i++) {
+    let value = 0.009 / txNumber;
     try {
       let [from, to] = await getRandomPair(chains, addressPool);
-      console.log(await remittance(from, to, 0.009 / txNumber));
+      console.log(await remittance(from, to, value.toString()));
     } catch (e) {
       console.log(e);
     }
@@ -67,12 +68,19 @@ infinitechain.initialize().then(async () => {
 });
 
 let remittance = async (chain, to, value) => {
+  if (value.toString().length > 20) {
+    value = value.toString().slice(0, 20);
+  }
+  let fee = 0.001 / txNumber;
+  if (fee.toString().length > 20) {
+    fee = fee.toString().slice(0, 20);
+  }
   let remittanceData = {
     from: chain.signer.getAddress(),
     to: to,
     assetID: '0',
     value: value,
-    fee: 0.001 / txNumber
+    fee: fee.toString()
   };
   let metadata = {
     client: '11111',
