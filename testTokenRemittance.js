@@ -48,10 +48,11 @@ infinitechain.initialize().then(async () => {
   assetList = await infinitechain.gringotts.getAssetList();
   if (assetList.length > 1) {
     console.time('Produce ' + txNumber + ' transactions.');
+    let val = txNumber * 2;
     // Remittance
     for (let i = 0; i < 5; i++) {
       try {
-        await remittance(infinitechain, addressPool[i], txNumber * 2);
+        await remittance(infinitechain, addressPool[i], val.toString());
       } catch (e) {
         console.log(e);
       }
@@ -60,7 +61,7 @@ infinitechain.initialize().then(async () => {
     for (let i = 0; i < txNumber; i++) {
       try {
         let [from, to] = await getRandomPair(chains, addressPool);
-        console.log(await remittance(from, to, 1));
+        console.log(await remittance(from, to, '1'));
       } catch (e) {
         console.log(e);
       }
@@ -79,7 +80,7 @@ let remittance = async (chain, to, value) => {
     to: to,
     assetID: asset,
     value: value,
-    fee: 1
+    fee: '1'
   };
   try {
     let lightTx = await chain.client.makeLightTx(Types.remittance, remittanceData);

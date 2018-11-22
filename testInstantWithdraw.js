@@ -25,7 +25,7 @@ infinitechain.initialize().then(async () => {
   // instantWithdraw
   let withdrawalLightTx = await infinitechain.client.makeProposeWithdrawal({
     assetID: '0',
-    value: 0.0000000001
+    value: '0.0000000001'
   });
 
   let response = await axios.post(url, withdrawalLightTx.toJson());
