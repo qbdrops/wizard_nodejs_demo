@@ -252,7 +252,7 @@ describe('Bolt integration test', () => {
       done();
     }, 30000);
   });
-  describe('test attach and finalize', () => {
+  describe('test attach, audit and finalize', () => {
     test('should attach receipts created in previous test', async (done) => {
       infinitechain.event.onAttach(async (err, result) => {
         stageHeight = '0x' + (parseInt(stageHeight) + 1).toString(16).padStart(64, '0');
@@ -262,6 +262,23 @@ describe('Bolt integration test', () => {
       let stageHeight = await infinitechain.contract._booster.methods.stageHeight().call();
       let res = await axios.post(`${env.nodeUrl}/attach`);
       expect(res.data.ok).toBe(true);
+    }, 30000);
+
+    test('should return empty array when no one is bad guy', async (done) => {
+      let allowedKeys = [
+        'receiptsWithRepeatedGSN', 'receiptsWithWrongBalance', 'receiptsWithSkippedGSN', 'receiptWithoutIntegrity'
+      ];
+      let stageHeight = await infinitechain.contract.booster().methods.stageHeight().call();
+
+      // auidt all receipts as a Auditor
+      infinitechain.auditor.audit(stageHeight).then((data) => {
+        let keys = Object.keys(data);
+        for (let i=0; i<keys.length; i++) {
+          expect(allowedKeys.indexOf(keys[i]) >= 0).toBe(true);
+          expect(data[keys[i]].length).toBe(0);
+        }
+        done();
+      });
     }, 30000);
 
     test('should finalize the stage', async (done) => {
