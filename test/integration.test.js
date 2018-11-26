@@ -355,4 +355,18 @@ describe('Bolt integration test', () => {
       done();
     }, 120000);
   });
+  describe('test make remittance to self', () => {
+    test('should\'d add balance when remittance to self', async (done) => {
+      let toAddress = infinitechain.signer.getAddress();
+      let balanceBefore = await infinitechain.gringotts.getBoosterBalance(toAddress, '0000000000000000000000000000000000000000000000000000000000000000');
+      let receipt = await remittance(infinitechain, toAddress, '0.01', 0);
+      let balanceAfter = await infinitechain.gringotts.getBoosterBalance(toAddress, '0000000000000000000000000000000000000000000000000000000000000000');
+      let fee = new util.BN('-1000000000000000');
+      balanceBefore = new util.BN(balanceBefore.data.balance);
+      balanceAfter = new util.BN(balanceAfter.data.balance);
+      let balanceDiff = balanceAfter.sub(balanceBefore);
+      expect(balanceDiff.eq(fee)).toBe(true);
+      done();
+    }, 30000);
+  });
 });
