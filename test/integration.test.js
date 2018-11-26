@@ -70,6 +70,7 @@ const getGringottsAssetAddress = async index => {
   return { assetAddress, assetDecimals };
 };
 let withdrawalReceipts = [];
+let attachedStages = [];
 
 beforeAll(async () => {
   await infinitechain.initialize();
@@ -255,7 +256,11 @@ describe('Bolt integration test', () => {
   describe('test attach, audit and finalize', () => {
     test('should attach receipts created in previous test', async (done) => {
       infinitechain.event.onAttach(async (err, result) => {
-        stageHeight = '0x' + (parseInt(stageHeight) + 1).toString(16).padStart(64, '0');
+        stageHeight = parseInt(stageHeight) + 1;
+        if (attachedStages.indexOf(stageHeight) < 0) {
+          attachedStages.push(stageHeight);
+        }
+        stageHeight = '0x' + stageHeight.toString(16).padStart(64, '0');
         expect(result.returnValues._stageHeight).toBe(stageHeight);
         done();
       });
@@ -293,7 +298,11 @@ describe('Bolt integration test', () => {
 
     test('should attach when there is not any receipt in database', async (done) => {
       infinitechain.event.onAttach(async (err, result) => {
-        stageHeight = '0x' + (parseInt(stageHeight) + 1).toString(16).padStart(64, '0');
+        stageHeight = parseInt(stageHeight) + 1;
+        if (attachedStages.indexOf(stageHeight) < 0) {
+          attachedStages.push(stageHeight);
+        }
+        stageHeight = '0x' + stageHeight.toString(16).padStart(64, '0');
         expect(result.returnValues._stageHeight).toBe(stageHeight);
         // finalize, remove this future
         let finalizeRes = await axios.post(`${env.nodeUrl}/finalize`);
@@ -321,5 +330,29 @@ describe('Bolt integration test', () => {
       }
       done();
     }, 90000);
+  });
+
+  describe('test get fee', () => {
+    test('should get fee after attach', async (done) => {
+      // the user of private must be goblin
+      let from = infinitechain.signer.getAddress();
+      let boosterAddress = infinitechain.contract.booster().options.address;
+      for (let i=0; i<attachedStages.length; i++) {
+        let stageHeight = attachedStages[i];
+        let balanceBefore = new util.BN(await web3.eth.getBalance(from));
+        let contractBalanceBefore = new util.BN(await web3.eth.getBalance(boosterAddress));
+        let txMethodData = infinitechain.contract.booster().methods.getFeeWithStageHeight(stageHeight).encodeABI();
+        let signedTx = await infinitechain.contract._signRawTransaction(txMethodData, from, boosterAddress, '0x0', env.signerKey);
+        let receipt = await web3.eth.sendSignedTransaction(signedTx);
+        let isTxFinished = await infinitechain.contract.isTxFinished(receipt.transactionHash);
+        expect(isTxFinished).toBe(true);
+        let balanceAfter = new util.BN(await web3.eth.getBalance(from));
+        let contractBalanceAfter = new util.BN(await web3.eth.getBalance(boosterAddress));
+        let balanceDiff = balanceAfter.sub(balanceBefore);
+        let contractBalanceDiff = contractBalanceAfter.sub(contractBalanceBefore);
+        expect(contractBalanceDiff.neg().eq(balanceDiff)).toBe(true);
+      }
+      done();
+    }, 120000);
   });
 });
