@@ -70,6 +70,7 @@ const getGringottsAssetAddress = async index => {
   return { assetAddress, assetDecimals };
 };
 let withdrawalReceipts = [];
+let attachedStages = [];
 
 beforeAll(async () => {
   await infinitechain.initialize();
@@ -252,16 +253,37 @@ describe('Bolt integration test', () => {
       done();
     }, 30000);
   });
-  describe('test attach and finalize', () => {
+  describe('test attach, audit and finalize', () => {
     test('should attach receipts created in previous test', async (done) => {
       infinitechain.event.onAttach(async (err, result) => {
-        stageHeight = '0x' + (parseInt(stageHeight) + 1).toString(16).padStart(64, '0');
+        stageHeight = parseInt(stageHeight) + 1;
+        if (attachedStages.indexOf(stageHeight) < 0) {
+          attachedStages.push(stageHeight);
+        }
+        stageHeight = '0x' + stageHeight.toString(16).padStart(64, '0');
         expect(result.returnValues._stageHeight).toBe(stageHeight);
         done();
       });
       let stageHeight = await infinitechain.contract._booster.methods.stageHeight().call();
       let res = await axios.post(`${env.nodeUrl}/attach`);
       expect(res.data.ok).toBe(true);
+    }, 30000);
+
+    test('should return empty array when no one is bad guy', async (done) => {
+      let allowedKeys = [
+        'receiptsWithRepeatedGSN', 'receiptsWithWrongBalance', 'receiptsWithSkippedGSN', 'receiptWithoutIntegrity'
+      ];
+      let stageHeight = await infinitechain.contract.booster().methods.stageHeight().call();
+
+      // auidt all receipts as a Auditor
+      infinitechain.auditor.audit(stageHeight).then((data) => {
+        let keys = Object.keys(data);
+        for (let i=0; i<keys.length; i++) {
+          expect(allowedKeys.indexOf(keys[i]) >= 0).toBe(true);
+          expect(data[keys[i]].length).toBe(0);
+        }
+        done();
+      });
     }, 30000);
 
     test('should finalize the stage', async (done) => {
@@ -276,7 +298,11 @@ describe('Bolt integration test', () => {
 
     test('should attach when there is not any receipt in database', async (done) => {
       infinitechain.event.onAttach(async (err, result) => {
-        stageHeight = '0x' + (parseInt(stageHeight) + 1).toString(16).padStart(64, '0');
+        stageHeight = parseInt(stageHeight) + 1;
+        if (attachedStages.indexOf(stageHeight) < 0) {
+          attachedStages.push(stageHeight);
+        }
+        stageHeight = '0x' + stageHeight.toString(16).padStart(64, '0');
         expect(result.returnValues._stageHeight).toBe(stageHeight);
         // finalize, remove this future
         let finalizeRes = await axios.post(`${env.nodeUrl}/finalize`);
@@ -304,5 +330,43 @@ describe('Bolt integration test', () => {
       }
       done();
     }, 90000);
+  });
+
+  describe('test get fee', () => {
+    test('should get fee after attach', async (done) => {
+      // the user of private must be goblin
+      let from = infinitechain.signer.getAddress();
+      let boosterAddress = infinitechain.contract.booster().options.address;
+      for (let i=0; i<attachedStages.length; i++) {
+        let stageHeight = attachedStages[i];
+        let balanceBefore = new util.BN(await web3.eth.getBalance(from));
+        let contractBalanceBefore = new util.BN(await web3.eth.getBalance(boosterAddress));
+        let txMethodData = infinitechain.contract.booster().methods.getFeeWithStageHeight(stageHeight).encodeABI();
+        let signedTx = await infinitechain.contract._signRawTransaction(txMethodData, from, boosterAddress, '0x0', env.signerKey);
+        let receipt = await web3.eth.sendSignedTransaction(signedTx);
+        let isTxFinished = await infinitechain.contract.isTxFinished(receipt.transactionHash);
+        expect(isTxFinished).toBe(true);
+        let balanceAfter = new util.BN(await web3.eth.getBalance(from));
+        let contractBalanceAfter = new util.BN(await web3.eth.getBalance(boosterAddress));
+        let balanceDiff = balanceAfter.sub(balanceBefore);
+        let contractBalanceDiff = contractBalanceAfter.sub(contractBalanceBefore);
+        expect(contractBalanceDiff.neg().eq(balanceDiff)).toBe(true);
+      }
+      done();
+    }, 120000);
+  });
+  describe('test make remittance to self', () => {
+    test('should\'d add balance when remittance to self', async (done) => {
+      let toAddress = infinitechain.signer.getAddress();
+      let balanceBefore = await infinitechain.gringotts.getBoosterBalance(toAddress, '0000000000000000000000000000000000000000000000000000000000000000');
+      let receipt = await remittance(infinitechain, toAddress, '0.01', 0);
+      let balanceAfter = await infinitechain.gringotts.getBoosterBalance(toAddress, '0000000000000000000000000000000000000000000000000000000000000000');
+      let fee = new util.BN('-1000000000000000');
+      balanceBefore = new util.BN(balanceBefore.data.balance);
+      balanceAfter = new util.BN(balanceAfter.data.balance);
+      let balanceDiff = balanceAfter.sub(balanceBefore);
+      expect(balanceDiff.eq(fee)).toBe(true);
+      done();
+    }, 30000);
   });
 });
