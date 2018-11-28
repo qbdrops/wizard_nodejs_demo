@@ -14,7 +14,7 @@ Send a signed light transaction and get a receipt.
 
 **Data constraints** : Data type is required to be json format.
 
-```json
+```
 lightTx = {
     lightTxHash: "lightTxHash",
     lightTxData: {
@@ -42,7 +42,7 @@ lightTx = {
 
 **Data example** All fields must be sent.
 
-```json
+```
 LightTransaction {
  lightTxData: 
   { from: '000000000000000000000000e422277c7333020f8dd254b7e8bdfb63c83465be',
@@ -115,7 +115,7 @@ Receipt {
 
 **Content example**
 
-```json
+```
 {
     errors: ""
 }
